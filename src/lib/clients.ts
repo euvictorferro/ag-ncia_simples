@@ -8,12 +8,16 @@ export type Client = {
   created_at: string;
 };
 
-export async function listClients(supabase: SupabaseClient, agencyId: string): Promise<Client[]> {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("agency_id", agencyId)
-    .order("name", { ascending: true });
+export async function listClients(
+  supabase: SupabaseClient,
+  agencyId: string,
+  options?: { includeArchived?: boolean },
+): Promise<Client[]> {
+  let query = supabase.from("clients").select("*").eq("agency_id", agencyId);
+  if (!options?.includeArchived) {
+    query = query.eq("archived", false);
+  }
+  const { data, error } = await query.order("name", { ascending: true });
 
   if (error) throw error;
   return data as Client[];

@@ -19,7 +19,7 @@ export default async function ClientesPage() {
 
   if (!membership) redirect("/login");
 
-  const clients = await listClients(supabase, membership.agency_id);
+  const clients = await listClients(supabase, membership.agency_id, { includeArchived: true });
   const agencyName = (membership.agencies as unknown as { name: string })?.name ?? "Agência";
 
   return (

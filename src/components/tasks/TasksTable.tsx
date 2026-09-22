@@ -79,15 +79,22 @@ export function TasksTable({
       </div>
 
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-muted/40">
-        <div className="grid grid-cols-[minmax(0,1fr)_140px_120px_110px_90px] gap-3 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="grid grid-cols-[minmax(0,1fr)_140px_120px_100px_110px_90px] gap-3 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <span>Título</span>
           <span>Cliente</span>
           <span>Status</span>
+          <span>Responsável</span>
           <span>Entrega</span>
           <span>Prioridade</span>
         </div>
         {filteredTasks.map((task) => (
-          <TaskRow key={task.id} task={task} client={clientById.get(task.client_id)} onClick={() => setEditing(task)} />
+          <TaskRow
+            key={task.id}
+            task={task}
+            client={clientById.get(task.client_id)}
+            members={members}
+            onClick={() => setEditing(task)}
+          />
         ))}
         {filteredTasks.length === 0 && (
           <p className="border-t border-border px-3 py-4 text-sm text-muted-foreground">Nenhuma tarefa encontrada.</p>

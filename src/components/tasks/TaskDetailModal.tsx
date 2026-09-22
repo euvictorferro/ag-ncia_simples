@@ -119,7 +119,7 @@ export function TaskDetailModal({
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-foreground-strong"
           />
           {description && (
-            <div className="prose prose-invert prose-sm max-w-none rounded-md border border-border bg-background px-3 py-2">
+            <div className="rounded-md border border-border bg-background px-3 py-2">
               <ReactMarkdown>{description}</ReactMarkdown>
             </div>
           )}
