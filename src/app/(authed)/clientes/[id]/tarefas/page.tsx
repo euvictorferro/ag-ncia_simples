@@ -13,6 +13,7 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
 
   const clients = await listClients(supabase, agencyId);
   const client = clients.find((c) => c.id === id);
+  const clientTree = clients.map((c) => ({ id: c.id, name: c.name }));
 
   if (!client) {
     return (
@@ -34,7 +35,10 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
   ]);
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "tasks" }} agencyName={agencyName}>
+    <AppFrame
+      context={{ type: "client", clientId: client.id, clientName: client.name, active: "tasks", clients: clientTree }}
+      agencyName={agencyName}
+    >
       <TasksTable agencyId={agencyId} initialTasks={tasks} members={members} lockedClientId={client.id} />
     </AppFrame>
   );

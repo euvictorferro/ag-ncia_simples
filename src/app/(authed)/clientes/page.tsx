@@ -11,7 +11,10 @@ export default async function ClientesPage() {
   const allClients = await listClients(supabase, agencyId, { includeArchived: true });
 
   return (
-    <AppFrame context={{ type: "clients" }} agencyName={agencyName}>
+    <AppFrame
+      context={{ type: "clients", clients: allClients.map((c) => ({ id: c.id, name: c.name })) }}
+      agencyName={agencyName}
+    >
       <ClientsGrid agencyId={agencyId} initialClients={allClients} />
     </AppFrame>
   );

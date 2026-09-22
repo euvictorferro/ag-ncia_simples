@@ -12,6 +12,7 @@ export default async function ClientConteudosPage({ params }: { params: Promise<
 
   const clients = await listClients(supabase, agencyId);
   const client = clients.find((c) => c.id === id);
+  const clientTree = clients.map((c) => ({ id: c.id, name: c.name }));
 
   if (!client) {
     return (
@@ -28,7 +29,10 @@ export default async function ClientConteudosPage({ params }: { params: Promise<
   }
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "conteudos" }} agencyName={agencyName}>
+    <AppFrame
+      context={{ type: "client", clientId: client.id, clientName: client.name, active: "conteudos", clients: clientTree }}
+      agencyName={agencyName}
+    >
       <PlaceholderSection title={`${client.name} — Conteúdos`} />
     </AppFrame>
   );
