@@ -149,6 +149,12 @@ export function TasksTable({
       </div>
 
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-muted/40">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_120px_100px_90px] items-center gap-3 border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span />
+          <span>Responsável</span>
+          <span>Entrega</span>
+          <span>Prioridade</span>
+        </div>
         {showClient
           ? clientGroups.map((clientGroup) => (
               <div key={clientGroup.clientId}>
