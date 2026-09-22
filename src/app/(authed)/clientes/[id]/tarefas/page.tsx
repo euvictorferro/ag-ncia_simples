@@ -16,11 +16,11 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
 
   if (!client) {
     return (
-      <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
+      <AppFrame context={{ type: "home", active: "dashboard" }} agencyName={agencyName}>
         <p className="text-sm text-muted-foreground">
           Cliente não encontrado.{" "}
-          <Link href="/overview" className="underline">
-            Voltar para a visão geral
+          <Link href="/home/dashboard" className="underline">
+            Voltar para o dashboard
           </Link>
           .
         </p>
@@ -34,12 +34,7 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
   ]);
 
   return (
-    <AppFrame
-      context={{ type: "client", clientId: client.id, clientName: client.name, active: "tasks" }}
-      agencyName={agencyName}
-      agencyId={agencyId}
-      clients={clients}
-    >
+    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "tasks" }} agencyName={agencyName}>
       <TasksTable agencyId={agencyId} initialTasks={tasks} members={members} lockedClientId={client.id} />
     </AppFrame>
   );

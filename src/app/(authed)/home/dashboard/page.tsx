@@ -16,7 +16,7 @@ function formatDueDate(value: string | null): string {
   return `${day}/${month}/${year}`;
 }
 
-export default async function OverviewPage() {
+export default async function HomeDashboardPage() {
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
 
@@ -38,9 +38,9 @@ export default async function OverviewPage() {
     .slice(0, 5);
 
   return (
-    <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
+    <AppFrame context={{ type: "home", active: "dashboard" }} agencyName={agencyName}>
       <div className="space-y-6">
-        <h1 className="text-sm font-semibold text-foreground-strong">Visão geral</h1>
+        <h1 className="text-sm font-semibold text-foreground-strong">Dashboard</h1>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <div className="rounded-[var(--radius-card)] border border-border bg-muted/40 p-4">

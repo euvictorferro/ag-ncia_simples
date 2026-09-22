@@ -5,7 +5,7 @@ import { listAgencyMembers, listTasks } from "@/lib/tasks";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { TasksTable } from "@/components/tasks/TasksTable";
 
-export default async function TasksPage() {
+export default async function HomeTasksPage() {
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
 
@@ -16,7 +16,7 @@ export default async function TasksPage() {
   ]);
 
   return (
-    <AppFrame context={{ type: "agency", active: "tasks" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
+    <AppFrame context={{ type: "home", active: "tasks" }} agencyName={agencyName}>
       <TasksTable agencyId={agencyId} initialTasks={tasks} clients={clients} members={members} />
     </AppFrame>
   );
