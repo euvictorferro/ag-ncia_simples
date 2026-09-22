@@ -33,6 +33,22 @@ export async function listTasks(supabase: SupabaseClient, agencyId: string): Pro
   return data as Task[];
 }
 
+export async function listTasksByClient(
+  supabase: SupabaseClient,
+  agencyId: string,
+  clientId: string,
+): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("agency_id", agencyId)
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data as Task[];
+}
+
 export async function listAgencyMembers(supabase: SupabaseClient, agencyId: string): Promise<AgencyMember[]> {
   const { data, error } = await supabase
     .from("agency_members")
