@@ -18,23 +18,25 @@ import type { Client } from "@/lib/clients";
 export function TaskDetailModal({
   agencyId,
   task,
-  clients,
+  clients = [],
   members,
+  lockedClientId,
   onClose,
   onSaved,
   onDeleted,
 }: {
   agencyId: string;
   task: Task | null;
-  clients: Client[];
+  clients?: Client[];
   members: AgencyMember[];
+  lockedClientId?: string;
   onClose: () => void;
   onSaved: (task: Task) => void;
   onDeleted: (id: string) => void;
 }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [clientId, setClientId] = useState(task?.client_id ?? clients[0]?.id ?? "");
+  const [clientId, setClientId] = useState(lockedClientId ?? task?.client_id ?? clients[0]?.id ?? "");
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? "todo");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "medium");
   const [assigneeId, setAssigneeId] = useState<string>(task?.assignee_id ?? "");
@@ -126,25 +128,27 @@ export function TaskDetailModal({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label htmlFor="task-client" className="text-xs text-muted-foreground">
-              Cliente
-            </label>
-            <select
-              id="task-client"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!lockedClientId && (
+            <div className="space-y-1">
+              <label htmlFor="task-client" className="text-xs text-muted-foreground">
+                Cliente
+              </label>
+              <select
+                id="task-client"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="space-y-1">
+          <div className={`space-y-1 ${lockedClientId ? "col-span-2" : ""}`}>
             <label htmlFor="task-assignee" className="text-xs text-muted-foreground">
               Responsável
             </label>
