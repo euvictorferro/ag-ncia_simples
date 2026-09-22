@@ -17,15 +17,22 @@ function EditIcon() {
 export function ClientCard({ client, onEdit }: { client: Client; onEdit: () => void }) {
   return (
     <div className="group relative rounded-[var(--radius-card)] border border-border bg-muted/40 p-4 transition-colors hover:bg-muted">
-      <Link href={`/clientes/${client.id}/tarefas`} className="block">
-        <p className="truncate pr-6 text-sm font-medium text-foreground-strong">{client.name}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{client.archived ? "Arquivado" : "Ativo"}</p>
-      </Link>
+      {client.archived ? (
+        <div className="block">
+          <p className="truncate pr-6 text-sm font-medium text-foreground-strong">{client.name}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Arquivado</p>
+        </div>
+      ) : (
+        <Link href={`/clientes/${client.id}/tarefas`} className="block">
+          <p className="truncate pr-6 text-sm font-medium text-foreground-strong">{client.name}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Ativo</p>
+        </Link>
+      )}
       <button
         type="button"
         onClick={onEdit}
         aria-label={`Editar ${client.name}`}
-        className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground-strong group-hover:opacity-100"
+        className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground-strong group-hover:opacity-100 focus-visible:opacity-100"
       >
         <EditIcon />
       </button>
