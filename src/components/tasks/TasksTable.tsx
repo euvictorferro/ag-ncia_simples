@@ -4,7 +4,37 @@ import { useMemo, useState } from "react";
 import type { Task, TaskStatus, AgencyMember } from "@/lib/tasks";
 import type { Client } from "@/lib/clients";
 import { TaskRow } from "@/components/tasks/TaskRow";
+import { TaskGroupHeader } from "@/components/tasks/TaskGroupHeader";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
+import { STATUS_LABEL } from "@/components/tasks/StatusIcon";
+
+const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "done"];
+
+type StatusGroup = { status: TaskStatus; tasks: Task[] };
+type ClientGroup = { clientId: string; clientLabel: string; statusGroups: StatusGroup[] };
+
+function groupByStatus(tasks: Task[]): StatusGroup[] {
+  return STATUS_ORDER.map((status) => ({ status, tasks: tasks.filter((t) => t.status === status) })).filter(
+    (group) => group.tasks.length > 0,
+  );
+}
+
+function groupByClientThenStatus(tasks: Task[], clientById: Map<string, Client>): ClientGroup[] {
+  const byClient = new Map<string, Task[]>();
+  for (const task of tasks) {
+    const list = byClient.get(task.client_id) ?? [];
+    list.push(task);
+    byClient.set(task.client_id, list);
+  }
+
+  return Array.from(byClient.entries())
+    .map(([clientId, clientTasks]) => ({
+      clientId,
+      clientLabel: clientById.get(clientId)?.name ?? "Sem cliente",
+      statusGroups: groupByStatus(clientTasks),
+    }))
+    .sort((a, b) => a.clientLabel.localeCompare(b.clientLabel));
+}
 
 export function TasksTable({
   agencyId,
@@ -23,6 +53,7 @@ export function TasksTable({
   const [editing, setEditing] = useState<Task | null | "new">(null);
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const showClient = !lockedClientId;
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
@@ -32,6 +63,24 @@ export function TasksTable({
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     return true;
   });
+
+  const clientGroups = useMemo(
+    () => (showClient ? groupByClientThenStatus(filteredTasks, clientById) : []),
+    [showClient, filteredTasks, clientById],
+  );
+  const statusGroups = useMemo(() => (!showClient ? groupByStatus(filteredTasks) : []), [showClient, filteredTasks]);
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   function upsert(task: Task) {
     setTasks((prev) => {
@@ -44,9 +93,21 @@ export function TasksTable({
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
-  const gridCols = showClient
-    ? "grid-cols-[minmax(0,1fr)_140px_120px_100px_110px_90px]"
-    : "grid-cols-[minmax(0,1fr)_120px_100px_110px_90px]";
+  function renderStatusGroup(group: StatusGroup, groupKey: string) {
+    const collapsed = collapsedGroups.has(groupKey);
+    return (
+      <div key={groupKey}>
+        <TaskGroupHeader
+          label={STATUS_LABEL[group.status]}
+          count={group.tasks.length}
+          collapsed={collapsed}
+          onToggle={() => toggleGroup(groupKey)}
+        />
+        {!collapsed &&
+          group.tasks.map((task) => <TaskRow key={task.id} task={task} members={members} onClick={() => setEditing(task)} />)}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -88,26 +149,20 @@ export function TasksTable({
       </div>
 
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-muted/40">
-        <div className={`grid ${gridCols} gap-3 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground`}>
-          <span>Título</span>
-          {showClient && <span>Cliente</span>}
-          <span>Status</span>
-          <span>Responsável</span>
-          <span>Entrega</span>
-          <span>Prioridade</span>
-        </div>
-        {filteredTasks.map((task) => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            client={clientById.get(task.client_id)}
-            members={members}
-            showClient={showClient}
-            onClick={() => setEditing(task)}
-          />
-        ))}
+        {showClient
+          ? clientGroups.map((clientGroup) => (
+              <div key={clientGroup.clientId}>
+                <p className="truncate border-t border-border px-3 py-2 text-sm font-medium text-foreground-strong first:border-t-0">
+                  {clientGroup.clientLabel}
+                </p>
+                {clientGroup.statusGroups.map((group) => renderStatusGroup(group, `${clientGroup.clientId}:${group.status}`))}
+              </div>
+            ))
+          : statusGroups.map((group) => renderStatusGroup(group, group.status))}
         {filteredTasks.length === 0 && (
-          <p className="border-t border-border px-3 py-4 text-sm text-muted-foreground">Nenhuma tarefa encontrada.</p>
+          <p className="border-t border-border px-3 py-4 text-sm text-muted-foreground first:border-t-0">
+            Nenhuma tarefa encontrada.
+          </p>
         )}
       </div>
 
