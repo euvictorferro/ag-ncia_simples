@@ -80,7 +80,7 @@ export function TasksTable({
           <button
             type="button"
             onClick={() => setEditing("new")}
-            className="rounded-md bg-button px-3 py-1.5 text-sm font-medium text-button-foreground"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
           >
             Nova tarefa
           </button>
