@@ -1,30 +1,19 @@
-import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAgencyMembership } from "@/lib/agency";
 import { listClients } from "@/lib/clients";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { ClientsTable } from "@/components/clientes/ClientsTable";
 
 export default async function ClientesPage() {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { agencyId, agencyName } = await requireAgencyMembership(supabase);
 
-  const { data: membership } = await supabase
-    .from("agency_members")
-    .select("agency_id, agencies(name)")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!membership) redirect("/login");
-
-  const clients = await listClients(supabase, membership.agency_id, { includeArchived: true });
-  const agencyName = (membership.agencies as unknown as { name: string })?.name ?? "Agência";
+  const allClients = await listClients(supabase, agencyId, { includeArchived: true });
+  const activeClients = allClients.filter((c) => !c.archived);
 
   return (
-    <AppFrame active="clientes" pageLabel="Clientes" agencyName={agencyName}>
-      <ClientsTable agencyId={membership.agency_id} initialClients={clients} />
+    <AppFrame context={{ type: "agency", active: "clients" }} agencyName={agencyName} clients={activeClients}>
+      <ClientsTable agencyId={agencyId} initialClients={allClients} />
     </AppFrame>
   );
 }
