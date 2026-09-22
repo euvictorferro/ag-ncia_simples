@@ -1,0 +1,1196 @@
+# Design System
+
+metadata:
+  extraction-date: 2026-09-22
+  url: "https://app.clickup.com/9017688604/v/o/s/90173233267"
+  viewport: "1710x951"
+  detected-pattern: "Major Third (1.25)"
+  confidence: medium
+
+css-architecture:
+  type: traditional
+  confidence: 20%
+  indicators:
+    - "Found 5 external stylesheets"
+  recommendation: "Can use CSS rules and class names for component identification. getComputedStyle() is still recommended for accuracy."
+
+layout:
+  structure: three-column
+  regions:
+    main:
+      role: main
+      position: center
+      width: 1644px
+      height: 905px
+      contains: [form, cards, grid-layout]
+  measurements:
+    section-gap: 51px
+    row-height: 25px
+  grid-pattern: "16px"
+
+colors:
+  semantic-tokens:
+    text:
+      text-muted: "rgb(0, 0, 0)"
+    interactive:
+      primary: "rgb(17, 17, 17)"
+      interactive-1: "rgb(34, 34, 34)"
+      interactive-2: "rgb(34, 27, 83)"
+
+  raw-with-context:
+    - value: "rgb(0, 0, 0)"
+      usage-count: 400
+      used-for: [text]
+      semantic-token: text-muted
+
+  component-specific-colors:
+    buttons:
+      - variant: primary
+        count: 2
+        colors:
+          background: "rgb(34, 27, 83)"
+          text: "rgb(168, 159, 255)"
+          border: "rgb(53, 35, 134)"
+          icon-fill: "rgb(0, 0, 0)"
+          hover-background: "var(--button-background-hover)"
+          hover-border: "var(--button-border-color-hover)"
+        measurements:
+          height: 24px
+          min-width: 112px
+          padding: "4px 6px"
+          border-radius: "12px"
+          font-size: "12px"
+          font-weight: "500"
+      - variant: primary
+        count: 2
+        colors:
+          background: "rgb(34, 27, 83)"
+          text: "rgb(238, 238, 238)"
+          border: "rgb(53, 35, 134)"
+          icon-fill: "rgb(0, 0, 0)"
+          hover-background: "var(--cu-effect-theme)"
+        measurements:
+          height: 18px
+          min-width: 20px
+          padding: "0px 3px 0px 1px"
+          border-radius: "10px"
+          font-size: "13.3333px"
+          font-weight: "400"
+      - variant: ghost
+        count: 80
+        colors:
+          text: "rgb(238, 238, 238)"
+          icon-fill: "rgb(210, 30, 36)"
+          hover-background: "transparent"
+          hover-border: "var(--button-border-color-hover)"
+        measurements:
+          height: 24px
+          min-width: 240px
+          padding: "2px 0px"
+          font-size: "13.3333px"
+          font-weight: "400"
+      - variant: ghost
+        count: 34
+        colors:
+          text: "rgb(180, 180, 180)"
+          icon-fill: "rgb(0, 0, 0)"
+          hover-background: "var(--button-background-hover)"
+          hover-border: "var(--button-border-color-hover)"
+        measurements:
+          height: 24px
+          min-width: 20px
+          padding: "0px"
+          border-radius: "5px"
+          font-size: "16px"
+          font-weight: "500"
+      - variant: ghost
+        count: 5
+        colors:
+          text: "rgb(123, 123, 123)"
+          icon-fill: "rgb(0, 0, 0)"
+          hover-background: "var(--button-background-hover)"
+          hover-border: "var(--button-border-color-hover)"
+        measurements:
+          height: 28px
+          min-width: 28px
+          padding: "0px"
+          border-radius: "7px"
+          font-size: "16px"
+          font-weight: "500"
+      - variant: ghost
+        count: 1
+        colors:
+          background: "rgb(25, 25, 25)"
+          text: "rgb(123, 123, 123)"
+          icon-fill: "rgb(0, 0, 0)"
+          hover-background: "var(--cu-background-on-main)"
+          hover-border: "var(--button-border-color-hover)"
+        measurements:
+          height: 28px
+          min-width: 28px
+          padding: "0px"
+          border-radius: "7px"
+          font-size: "16px"
+          font-weight: "500"
+    navigation:
+      - variant: nav-item
+        count: 35
+        colors:
+          text: "rgb(238, 238, 238)"
+          icon-fill: "rgb(0, 0, 0)"
+        measurements:
+          height: 28px
+          padding: "0px"
+          font-size: "14px"
+          font-weight: "400"
+      - variant: nav-item
+        count: 7
+        colors:
+          text: "rgb(180, 180, 180)"
+          icon-fill: "rgb(0, 0, 0)"
+        measurements:
+          height: 20px
+          padding: "0px"
+          font-size: "16px"
+          font-weight: "500"
+      - variant: nav-item
+        count: 3
+        colors:
+          text: "rgb(255, 255, 255)"
+          icon-fill: "rgb(0, 0, 0)"
+        measurements:
+          height: 32px
+          padding: "0px"
+          font-size: "20px"
+          font-weight: "400"
+      - variant: nav-item
+        count: 2
+        colors:
+          text: "rgb(123, 123, 123)"
+          icon-fill: "rgb(0, 0, 0)"
+        measurements:
+          height: 28px
+          padding: "0px"
+          font-size: "16px"
+          font-weight: "500"
+      - variant: nav-item
+        count: 1
+        colors:
+          background: "rgb(25, 25, 25)"
+          text: "rgb(123, 123, 123)"
+          icon-fill: "rgb(0, 0, 0)"
+        measurements:
+          height: 28px
+          padding: "0px"
+          font-size: "16px"
+          font-weight: "500"
+    icons:
+      - count: 144
+        fill: "rgb(0, 0, 0)"
+      - count: 45
+      - count: 35
+      - count: 31
+      - count: 26
+
+  css-variables:
+    # Color variables
+    theme-main-color-light: "#d3cdf9"
+    cu-google-calendar-text: "#292d34"
+    suggestion-insert-color: "#4caf50"
+    suggestion-delete-color: "#999"
+    suggestion-insert-bg: "#7ce24d40"
+    cu-google-calendar-subtext: "rgba(41, 45, 52, .8)"
+    theme-main-color-dark: "#5f48ea"
+    theme-main-color: "#7b68ee"
+    chat-item-highlight-flash-background: "rgba(0, 0, 0, 0)"
+    cu-google-calendar-icon: "#292d34"
+
+typography:
+  detected-scale: [9, 12, 13, 13.3333, 14, 15.75, 16]
+  base-size: 15
+  scale-ratio: 1.25
+  ratio-name: "Major Third (1.25)"
+  confidence: medium
+
+  fonts:
+    - "Segoe UI"
+
+  headings:
+    h4:
+      size: 15.75px
+      weight: 700
+      line-height: 23.625px
+      usage: "H4 headings"
+      count: 12
+      example: "@Clique Boost"
+    h5 (inferred):
+      size: 16px
+      weight: 600
+      line-height: 20px
+      usage: "h5 headings (styled 16px text in <span> elements)"
+      count: 1
+      example: "Home"
+
+  body-text:
+    - usage: "UI: Button text"
+      size: 16px
+      weight: 500
+      line-height: 21.3333px
+      count: 66
+    - usage: "Content: Article text"
+      size: 14px
+      weight: 400
+      line-height: 28px
+      count: 36
+    - usage: "UI: Menu items"
+      size: 13px
+      weight: 400
+      line-height: 13px
+      count: 17
+    - usage: "Label: Form label"
+      size: 14px
+      weight: 400
+      line-height: 16.002px
+      count: 15
+    - usage: "Body text"
+      size: 14px
+      weight: 500
+      line-height: 16px
+      count: 12
+
+  line-height-patterns:
+    - value: 21.3333px
+      ratio: 1.33
+      usage: "Body text"
+      count: 66
+    - value: 28px
+      ratio: 2.01
+      usage: "Loose (content)"
+      count: 37
+    - value: 13px
+      ratio: 1
+      usage: "Tight (headings)"
+      count: 18
+    - value: 16.002px
+      ratio: 1.14
+      usage: "Tight (headings)"
+      count: 17
+    - value: 16px
+      ratio: 1.14
+      usage: "Tight (headings)"
+      count: 14
+
+  font-weights:
+    - value: 400
+      name: regular
+      usage-count: 596
+      used-in: [body-text, button, button-text, navigation, text]
+    - value: 500
+      name: medium
+      usage-count: 205
+      used-in: [button-text, button, navigation, text, body-text]
+    - value: 600
+      name: semibold
+      usage-count: 28
+      used-in: [button-text, body-text, text, button]
+    - value: 700
+      name: bold
+      usage-count: 22
+      used-in: [button-text, body-text, text]
+    - value: 800
+      name: extrabold
+      usage-count: 1
+      used-in: [navigation]
+
+  font-weight-variables:
+    --font-weight-regular: 400
+    --font-weight-medium: 500
+    --font-weight-semibold: 600
+    --font-weight-bold: 700
+    --font-weight-extrabold: 800
+
+spacing:
+  base-unit: 8px
+  pattern: "No spacing data detected"
+  scale: []
+
+  usage:
+
+shadows:
+  pattern: "Single shadow style"
+  levels:
+    - name: border/outline
+      elevation: 0
+      blur: 1px
+      offset: [0, 0]
+      usage-count: 4
+      value: "rgba(255, 255, 255, 0.333) 0px 0px 1px 0px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+      used-by:
+        - button-secondary (1)
+        - button-outline (1)
+        - menu (1)
+
+z-index:
+  range: [-1, 999]
+  layers:
+    base: [-1, 1, 2]  # General stacking (1-10)
+    modal: [999]  # Modal dialogs (100-1000)
+
+animations:
+  durations:
+    - value: 0.3s
+      usage-count: 7
+    - value: 0.2s
+      usage-count: 3
+  easings:
+    - value: "cubic-bezier"
+      usage-count: 10
+  transitions:
+    - property: color
+      duration: 0.3s
+      easing: "cubic-bezier"
+      usage-count: 3
+    - property: rotate
+      duration: 0.2s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: box-shadow
+      duration: 0.3s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: background
+      duration: 0.3s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: border-color
+      duration: 0.3s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: opacity
+      duration: 0.3s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: inset
+      duration: 0.2s
+      easing: "cubic-bezier"
+      usage-count: 1
+    - property: transform
+      duration: 0.2s
+      easing: "cubic-bezier"
+      usage-count: 1
+
+interaction-patterns:
+  timing:
+    default-duration: 150ms
+    default-easing: ease
+
+  component-states:
+    button:
+      count: 235
+      default:
+        backgroundColor: "rgba(255, 255, 255, 0.07)"
+        color: "rgb(238, 238, 238)"
+        opacity: "1"
+        transition: "all"
+      hover:
+        outline: "none"
+      active:
+        outline: "none"
+    link:
+      count: 53
+      default:
+        backgroundColor: "rgba(0, 0, 0, 0)"
+        color: "rgb(238, 238, 238)"
+        opacity: "1"
+        transition: "all"
+      focus:
+        outline: "none"
+    input:
+      count: 7
+      default:
+        backgroundColor: "rgba(0, 0, 0, 0)"
+        color: "rgb(238, 238, 238)"
+        opacity: "0"
+        transition: "0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86)"
+      focus:
+        outline: "none"
+    navigation-item:
+      count: 7
+      default:
+        backgroundColor: "rgba(0, 0, 0, 0)"
+        color: "rgb(238, 238, 238)"
+        opacity: "1"
+        transition: "all"
+      focus:
+        outline: "none"
+    card:
+      count: 20
+      default:
+        backgroundColor: "rgba(0, 0, 0, 0)"
+        color: "rgb(238, 238, 238)"
+        opacity: "1"
+        transition: "left 0.3s, top 0.3s, height 0.3s, width 0.3s"
+      hover:
+        backgroundColor: "detected-via-DOM"
+        transition: "left 0.3s, top 0.3s, height 0.3s, width 0.3s"
+      focus:
+        outline: "none"
+
+icons:
+  common-sizes:
+    - size: 16x16
+      count: 106
+    - size: 14x14
+      count: 17
+    - size: 20x20
+      count: 8
+    - size: 16x24
+      count: 7
+    - size: 13x13
+      count: 5
+    - size: 8x8
+      count: 4
+    - size: 9x9
+      count: 4
+    - size: 11x11
+      count: 2
+  svg-patterns:
+    - size: 16x16
+      count: 106
+    - size: 14x14
+      count: 17
+    - size: 20x20
+      count: 8
+    - size: 16x24
+      count: 7
+    - size: 13x13
+      count: 5
+  icon-font-sizes:
+    - size: 16px
+      count: 157
+    - size: 14px
+      count: 24
+    - size: 20px
+      count: 18
+    - size: 12px
+      count: 8
+    - size: 11px
+      count: 5
+  totals:
+    svg-icons: 228
+    icon-fonts: 234
+
+components:
+  sidebars:
+    - variant: sidebar
+      count: 1
+      description: navigation sidebar with collapse functionality
+      styles:
+        width: 60px
+        height: 905px
+        position: relative
+        z-index: 999
+    - variant: sidebar
+      count: 1
+      description: navigation sidebar with collapse functionality
+      styles:
+        width: 256px
+        height: 903px
+        position: relative
+        z-index: 700
+    - variant: sidebar
+      count: 1
+      description: navigation sidebar with collapse functionality
+      styles:
+        width: 255px
+        height: 903px
+        position: static
+  topbars:
+    - variant: topbar
+      count: 1
+      description: application toolbar with actions
+      styles:
+        height: 38px
+        position: static
+    - variant: topbar
+      count: 1
+      description: application toolbar with actions
+      styles:
+        height: 35px
+        position: static
+  buttons:
+    - variant: outline-small-3
+      description: with border, compact size
+      count: 51
+      styles:
+        color: "rgb(180, 180, 180)"
+        padding: "1px 0px 0px"
+        border-radius: 5px
+        font-size: 16px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: outline-small-2
+      description: with border, compact size
+      count: 16
+      styles:
+        color: "rgb(123, 123, 123)"
+        border-radius: 7px
+        font-size: 16px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: outline-small-1
+      description: with border, compact size
+      count: 14
+      styles:
+        color: "rgba(255, 255, 255, 0.686)"
+        border-radius: 6px
+        font-size: 16px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  cards:
+    - variant: media-rounded-elevated
+      description: elevated, compact size, rounded corners
+      count: 7
+      styles:
+        background: "rgb(17, 17, 17)"
+        border-radius: 12px
+        box-shadow: "rgba(255, 255, 255, 0.333)"
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: default-emphasized
+      description: compact size
+      count: 7
+      styles:
+        background: "rgb(17, 17, 17)"
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: outlined-thin-border-dark-padded
+      description: outlined button with transparent background, compact size
+      count: 3
+      styles:
+        border: "1px solid rgb(42, 42, 42)"
+        border-radius: 8px
+        padding: 0px 0px 16px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  inputs:
+    - type: file
+      variant: file
+      description: compact size
+      count: 3
+      styles:
+        height: 100%
+      states:
+    - type: checkbox
+      variant: checkbox
+      description: with border, compact size
+      count: 2
+      styles:
+        background: "rgb(17, 17, 17)"
+        border: "1px solid rgb(110, 110, 110)"
+        border-radius: 4px
+        height: 14px
+      states:
+    - type: text
+      variant: text-success
+      description: compact size
+      count: 1
+      styles:
+        height: 16px
+      states:
+    - type: text
+      variant: text-success
+      description: compact size
+      count: 1
+      styles:
+        border-radius: 6px
+        padding: 2px 44px 3px 8px
+        height: 24px
+      states:
+
+  navigation:
+    - variant: default
+      description: compact size
+      count: 15
+      styles:
+        color: "rgb(238, 238, 238)"
+        font-size: 14px
+        font-weight: 400
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: active
+      description: compact size
+      count: 7
+      styles:
+        color: "rgb(238, 238, 238)"
+        font-size: 13px
+        font-weight: 400
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: default
+      description: compact size
+      count: 7
+      styles:
+        color: "rgb(238, 238, 238)"
+        font-size: 14px
+        font-weight: 400
+        padding: 0px 8px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  dropdowns:
+    - count: 109
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        border-radius: 0px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 85
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        border-radius: 0px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 10
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        border-radius: 0px
+        box-shadow: "none"
+        min-width: auto
+    - count: 7
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        border-radius: 7px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 4
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        border-radius: 6px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 3
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        border-radius: 6px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 2
+      styles:
+        background: "rgb(17, 17, 17)"
+        border: ""
+        border-radius: 6px 8px 8px 6px
+        box-shadow: "none"
+        min-width: auto
+    - count: 2
+      styles:
+        background: "rgb(17, 17, 17)"
+        border: "1px solid rgb(42, 42, 42)"
+        border-radius: 0px 6px 6px 0px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 2
+      styles:
+        background: "rgb(34, 34, 34)"
+        border: "1px solid rgb(42, 42, 42)"
+        border-radius: 12px
+        box-shadow: "none"
+        min-width: 0px
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        border-radius: 6px
+        box-shadow: "none"
+        min-width: 0px
+
+  tables:
+    - count: 2
+      styles:
+        header:
+          color: "rgb(238, 238, 238)"
+          font-weight: 400
+    - count: 1
+      styles:
+        header:
+          color: "rgb(238, 238, 238)"
+          font-weight: 400
+    - count: 1
+      styles:
+        background: "rgb(17, 17, 17)"
+        header:
+          color: "rgb(238, 238, 238)"
+          font-weight: 400
+
+  modals:
+    - count: 1
+      styles:
+    - count: 1
+      styles:
+        z-index: 801
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0.565)"
+    - count: 1
+      styles:
+        background: "rgb(17, 17, 17)"
+        border-radius: 12px
+
+  tooltips:
+    - count: 1
+      styles:
+        color: "rgb(168, 159, 255)"
+        font-size: 12px
+
+  badges:
+    - variant: default
+      description: compact size
+      count: 14
+      styles:
+        color: "rgb(238, 238, 238)"
+        font-size: 0px
+    - variant: default
+      description: compact size
+      count: 6
+      styles:
+        color: "rgb(238, 238, 238)"
+        font-size: 13px
+    - variant: default
+      description: compact size
+      count: 5
+      styles:
+        color: "rgb(168, 159, 255)"
+        font-size: 12px
+    - variant: default
+      description: compact size
+      count: 4
+      styles:
+        color: "rgb(180, 180, 180)"
+        font-size: 14px
+    - variant: default
+      description: compact size
+      count: 4
+      styles:
+        color: "rgb(180, 180, 180)"
+        font-size: 14px
+
+  avatars:
+    - variant: square-xs
+      count: 17
+      styles:
+        size: 24px x 24px
+        border-radius: 0px
+        border: "0px none rgb(238, 238, 238)"
+    - variant: square-xs
+      count: 11
+      styles:
+        size: 0px x 0px
+        border-radius: 0px
+        border: "0px none rgb(255, 255, 255)"
+    - variant: square-sm
+      count: 7
+      styles:
+        size: 26px x 16px
+        border-radius: 0px
+        border: "0px none rgb(238, 238, 238)"
+    - variant: square-xs
+      count: 7
+      styles:
+        size: 20px x 20px
+        border-radius: 0px
+        border: "0px none rgb(238, 238, 238)"
+    - variant: rounded-xs
+      count: 6
+      styles:
+        size: 24px x 24px
+        border-radius: 666px
+        border: "0px none rgba(0, 0, 0, 0.875)"
+
+  tabs:
+    - variant: inactive
+      count: 18
+      styles:
+        color: "rgb(238, 238, 238)"
+        background: "rgba(0, 0, 0, 0)"
+        border-bottom: "0px none rgb(238, 238, 238)"
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: inactive
+      count: 11
+      styles:
+        color: "rgb(238, 238, 238)"
+        background: "rgba(0, 0, 0, 0)"
+        border-bottom: "0px none rgb(238, 238, 238)"
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: inactive
+      count: 8
+      styles:
+        color: "rgb(238, 238, 238)"
+        background: "rgba(0, 0, 0, 0)"
+        border-bottom: "0px none rgb(238, 238, 238)"
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  accordions:
+    - count: 6
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        padding: 0px
+    - count: 3
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        padding: 0px
+    - count: 2
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "1px solid rgba(0, 0, 0, 0)"
+        padding: 0px
+
+  progress:
+    - variant: spinner
+      count: 9
+      styles:
+        height: auto
+        background: "rgba(0, 0, 0, 0)"
+        border-radius: 0px
+    - variant: spinner
+      count: 6
+      styles:
+        height: 1px
+        background: "rgba(0, 0, 0, 0)"
+        border-radius: 0px
+    - variant: spinner
+      count: 6
+      styles:
+        height: auto
+        background: "rgba(0, 0, 0, 0)"
+        border-radius: 0px
+
+  alerts:
+    - variant: warning
+      description: compact size
+      count: 3
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        color: "rgb(238, 238, 238)"
+        border: "0px none rgb(238, 238, 238)"
+        padding: 0px
+    - variant: default
+      description: compact size
+      count: 3
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        color: "rgb(0, 0, 0)"
+        border: "0px none rgb(0, 0, 0)"
+        padding: 0px
+    - variant: default
+      description: compact size
+      count: 2
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        color: "rgb(123, 123, 123)"
+        border: "0px none rgb(123, 123, 123)"
+        padding: 0px
+    - variant: default
+      description: default variant
+      count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        color: "rgb(0, 0, 0)"
+        border: "0px none rgb(0, 0, 0)"
+        padding: 8px 50px 8px 15px
+    - variant: default
+      description: compact size
+      count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        color: "rgb(89, 93, 102)"
+        border: "0px none rgb(89, 93, 102)"
+        padding: 0px
+
+  search-bars:
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        border-radius: 0px
+        height: 16px
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        border-radius: 6px
+        height: 24px
+
+  toggles:
+    - count: 32
+      styles:
+        width: 339.594px
+        height: 28px
+    - count: 31
+      styles:
+        width: auto
+        height: auto
+    - count: 10
+      styles:
+        width: 160px
+        height: 36px
+
+  dividers:
+    - count: 2
+      styles:
+        border-top: "0px none rgb(238, 238, 238)"
+        height: 16px
+        margin: 0px 4px
+    - count: 1
+      styles:
+        border-top: "0px none rgb(238, 238, 238)"
+        height: 494px
+        margin: 0px
+    - count: 1
+      styles:
+        border-top: "0px none rgb(180, 180, 180)"
+        height: 2.51562px
+        margin: 0px
+
+gradients:
+  - type: conic
+    count: 1
+    value: "conic-gradient(rgb(0, 145, 255), rgb(255, 2, 240), rgb(247, 104, 8), rgb(102, 71, 240), rgb(0, 145, 255) 360deg)"
+  - type: linear
+    count: 1
+    value: "linear-gradient(to left, rgb(42, 42, 42) 80%, rgba(0, 0, 0, 0))"
+  - type: radial
+    count: 1
+    value: "radial-gradient(circle closest-side, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0) 100%)"
+
+flexbox-patterns:
+  - flex-direction: row
+    justify-content: center
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 24
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 6
+  - flex-direction: row
+    justify-content: center
+    align-items: center
+    gap: 4px
+    flex-wrap: nowrap
+    usage-count: 4
+  - flex-direction: row
+    justify-content: normal
+    align-items: normal
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 3
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: 4px
+    flex-wrap: nowrap
+    usage-count: 3
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: 2px
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: column
+    justify-content: normal
+    align-items: normal
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: column
+    justify-content: normal
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: row
+    justify-content: center
+    align-items: normal
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: 6px
+    flex-wrap: nowrap
+    usage-count: 1
+
+component-composition:
+  # Common nesting patterns found in the UI
+  - pattern: button-with-icon
+    count: 207
+    description: "button, [role="button"] containing svg, [class*="icon"]"
+  - pattern: card-with-button
+    count: 12
+    description: "[class*="card"], article containing button, [role="button"]"
+  - pattern: card-with-image
+    count: 5
+    description: "[class*="card"], article containing img"
+  - pattern: nav-with-dropdown
+    count: 1
+    description: "nav, [role="navigation"] containing [role="menu"], [class*="dropdown"]"
+
+specialized-components:
+  skeletons:
+    - variant: static
+      count: 7
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        height: 35px
+        border-radius: 0px
+    - variant: static
+      count: 5
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        height: 16px
+        border-radius: 0px
+    - variant: static
+      count: 2
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        height: 36px
+        border-radius: 0px
+    - variant: static
+      count: 2
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        height: 16px
+        border-radius: 0px
+    - variant: static
+      count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        height: 16px
+        border-radius: 0px
+  empty-states:
+    - count: 7
+      styles:
+        text-align: start
+        padding: 0px
+        color: "rgb(238, 238, 238)"
+  date-pickers:
+    - count: 15
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        height: 36px
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        height: 32px
+  rich-text-editors:
+    - count: 2
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        padding: 0px
+        min-height: auto
+    - count: 1
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px none rgb(238, 238, 238)"
+        padding: 0px
+        min-height: auto
+
+responsive:
+  breakpoints:
+    - width: 375px
+      name: "custom"
+      type: max-width
+      usage-count: 2
+    - width: 544px
+      name: "custom"
+      type: max-width
+      usage-count: 11
+    - width: 768px
+      name: "md (Tailwind/Bootstrap)"
+      type: max-width
+      usage-count: 37
+    - width: 992px
+      name: "lg (Bootstrap)"
+      type: max-width
+      usage-count: 31
+    - width: 1200px
+      name: "xl (Bootstrap)"
+      type: max-width
+      usage-count: 9
+    - width: 1751px
+      name: "custom"
+      type: min-width
+      usage-count: 1
+  total-media-queries: 335
+
+scrollbars:
+  - selector: ".comment-viewer__body.comment-viewer__email-preview::-webkit-scrollbar"
+    styles:
+      width: "10px"
+      height: "10px"
+      backgroundColor: "rgba(29, 29, 29, 0.95)"
+  - selector: ".comment-viewer__body.comment-viewer__email-preview::-webkit-scrollbar-track"
+    styles:
+      backgroundColor: "rgba(29, 29, 29, 0.95)"
+  - selector: ".comment-viewer__body.comment-viewer__email-preview::-webkit-scrollbar-thumb"
+    styles:
+      backgroundColor: "var(--cu-border-hover)"
+      borderRadius: "var(--cu-radii-5)"
+  - selector: ".cu-dropdown__menu::-webkit-scrollbar"
+    styles:
+      width: "10px"
+      height: "10px"
+      backgroundColor: "var(--cu-background-menu)"
+  - selector: ".cu-dropdown__menu::-webkit-scrollbar-track"
+    styles:
+      backgroundColor: "var(--cu-background-menu)"
+

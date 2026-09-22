@@ -11,6 +11,9 @@
   --button: #ffffff;
   --button-foreground: #151515;
   --radius-card: 0.75rem;
+  --accent: #5f48ea;
+  --accent-strong: #7b68ee;
+  --accent-foreground: #ffffff;
 }
 
 @theme inline {
@@ -23,6 +26,9 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-button: var(--button);
   --color-button-foreground: var(--button-foreground);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-foreground: var(--accent-foreground);
 }
 
 body {

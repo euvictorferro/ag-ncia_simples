@@ -234,7 +234,7 @@ export function TaskDetailModal({
             <button
               type="submit"
               disabled={saving}
-              className="rounded-md bg-button px-3 py-2 text-sm font-medium text-button-foreground disabled:opacity-60"
+              className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-60"
             >
               {saving ? "Salvando…" : "Salvar"}
             </button>
