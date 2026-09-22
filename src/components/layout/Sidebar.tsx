@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks";
 export type ClientTab = "dashboard" | "anuncios" | "organico" | "financeiro" | "tasks" | "conteudos";
+export type ClientTreeItem = { id: string; name: string };
 
 export type SidebarContext =
   | { type: "home"; active: HomeTab }
-  | { type: "clients" }
-  | { type: "client"; clientId: string; clientName: string; active: ClientTab }
+  | { type: "clients"; clients: ClientTreeItem[] }
+  | { type: "client"; clientId: string; clientName: string; active: ClientTab; clients: ClientTreeItem[] }
   | { type: "inbox" }
   | { type: "chats" }
   | { type: "nodes" };
 
 function navClass(isActive: boolean): string {
   return `truncate rounded-md px-3 py-2 text-sm transition-colors ${
-    isActive ? "bg-muted text-foreground-strong" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    isActive ? "bg-accent/15 text-accent-strong" : "text-muted-foreground hover:bg-muted hover:text-foreground"
   }`;
 }
 
@@ -44,29 +46,85 @@ const CLIENT_TABS: { key: ClientTab; label: string; path: string }[] = [
   { key: "conteudos", label: "Conteúdos", path: "conteudos" },
 ];
 
-function ClientPanel({
-  clientId,
-  clientName,
-  active,
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      aria-hidden="true"
+      className={`shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`}
+    >
+      <path d="M3 1.5 7 5l-4 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ClientsTree({
+  clients,
+  activeClientId,
+  activeTab,
 }: {
-  clientId: string;
-  clientName: string;
-  active: ClientTab;
+  clients: ClientTreeItem[];
+  activeClientId?: string;
+  activeTab?: ClientTab;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(() => (activeClientId ? new Set([activeClientId]) : new Set()));
+
+  function toggle(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
   return (
     <nav className="flex flex-col gap-1">
-      <Link
-        href="/clientes"
-        className="mb-3 flex items-center gap-1 truncate px-3 text-sm text-muted-foreground hover:text-foreground-strong"
-      >
-        <span aria-hidden="true">←</span>
-        <span className="truncate">{clientName}</span>
-      </Link>
-      {CLIENT_TABS.map((tab) => (
-        <Link key={tab.key} href={`/clientes/${clientId}/${tab.path}`} className={navClass(active === tab.key)}>
-          {tab.label}
-        </Link>
-      ))}
+      <p className="mb-2 truncate px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Clientes</p>
+      {clients.map((client) => {
+        const isExpanded = expanded.has(client.id);
+        return (
+          <div key={client.id}>
+            <div className="flex items-center gap-1 rounded-md px-1 hover:bg-muted">
+              <button
+                type="button"
+                onClick={() => toggle(client.id)}
+                aria-label={isExpanded ? `Recolher ${client.name}` : `Expandir ${client.name}`}
+                className="flex h-7 w-5 shrink-0 items-center justify-center text-muted-foreground"
+              >
+                <ChevronIcon expanded={isExpanded} />
+              </button>
+              <Link
+                href={`/clientes/${client.id}/tarefas`}
+                className={`min-w-0 flex-1 truncate py-1.5 text-sm ${
+                  client.id === activeClientId ? "text-accent-strong" : "text-foreground"
+                }`}
+              >
+                {client.name}
+              </Link>
+            </div>
+            {isExpanded && (
+              <div className="ml-6 flex flex-col gap-1 border-l border-border pl-2">
+                {CLIENT_TABS.map((tab) => (
+                  <Link
+                    key={tab.key}
+                    href={`/clientes/${client.id}/${tab.path}`}
+                    className={navClass(client.id === activeClientId && tab.key === activeTab)}
+                  >
+                    {tab.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </nav>
   );
 }
@@ -126,7 +184,7 @@ function RailIcon({
       href={href}
       aria-label={label}
       className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-        active ? "bg-muted text-foreground-strong" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        active ? "bg-muted text-accent-strong" : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
       {children}
@@ -159,8 +217,9 @@ export function Sidebar({ context, agencyName }: { context: SidebarContext; agen
       </aside>
       <aside className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border bg-background-elevated px-4 py-5">
         {context.type === "home" && <HomePanel active={context.active} />}
+        {context.type === "clients" && <ClientsTree clients={context.clients} />}
         {context.type === "client" && (
-          <ClientPanel clientId={context.clientId} clientName={context.clientName} active={context.active} />
+          <ClientsTree clients={context.clients} activeClientId={context.clientId} activeTab={context.active} />
         )}
       </aside>
     </div>
