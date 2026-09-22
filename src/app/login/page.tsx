@@ -26,7 +26,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/tasks");
+    router.push("/overview");
     router.refresh();
   }
 
