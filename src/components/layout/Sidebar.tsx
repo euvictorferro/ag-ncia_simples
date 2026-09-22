@@ -1,5 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Client } from "@/lib/clients";
+import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 
 export type SidebarContext =
   | { type: "agency"; active: "overview" | "tasks" | "clients" }
@@ -11,7 +16,18 @@ function navClass(isActive: boolean): string {
   }`;
 }
 
-function AgencyPanel({ active, clients }: { active: "overview" | "tasks" | "clients"; clients: Client[] }) {
+function AgencyPanel({
+  active,
+  clients,
+  agencyId,
+}: {
+  active: "overview" | "tasks" | "clients";
+  clients: Client[];
+  agencyId: string;
+}) {
+  const router = useRouter();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   return (
     <nav className="flex flex-col gap-1">
       <Link href="/overview" className={navClass(active === "overview")}>
@@ -28,9 +44,24 @@ function AgencyPanel({ active, clients }: { active: "overview" | "tasks" | "clie
         </Link>
       ))}
 
+      <button type="button" onClick={() => setShowCreateModal(true)} className={`${navClass(false)} text-left`}>
+        + Novo cliente
+      </button>
+
       <Link href="/clientes" className={navClass(active === "clients")}>
         Gerenciar clientes
       </Link>
+
+      {showCreateModal && (
+        <ClientFormModal
+          agencyId={agencyId}
+          client={null}
+          onClose={() => setShowCreateModal(false)}
+          onSaved={() => {
+            router.refresh();
+          }}
+        />
+      )}
     </nav>
   );
 }
@@ -64,10 +95,12 @@ export function Sidebar({
   context,
   clients,
   agencyName,
+  agencyId,
 }: {
   context: SidebarContext;
   clients: Client[];
   agencyName: string;
+  agencyId: string;
 }) {
   const agencyInitial = agencyName.trim().charAt(0).toUpperCase() || "A";
 
@@ -84,7 +117,7 @@ export function Sidebar({
       </aside>
       <aside className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border bg-background-elevated px-4 py-5">
         {context.type === "agency" ? (
-          <AgencyPanel active={context.active} clients={clients} />
+          <AgencyPanel active={context.active} clients={clients} agencyId={agencyId} />
         ) : (
           <ClientPanel clientId={context.clientId} clientName={context.clientName} active={context.active} />
         )}

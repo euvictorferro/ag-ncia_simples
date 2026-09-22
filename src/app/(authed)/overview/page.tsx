@@ -38,7 +38,7 @@ export default async function OverviewPage() {
     .slice(0, 5);
 
   return (
-    <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} clients={clients}>
+    <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
       <div className="space-y-6">
         <h1 className="text-sm font-semibold text-foreground-strong">Visão geral</h1>
 

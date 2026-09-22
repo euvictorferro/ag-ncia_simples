@@ -14,17 +14,19 @@ function pageLabelFor(context: SidebarContext): string {
 export function AppFrame({
   context,
   agencyName,
+  agencyId,
   clients,
   children,
 }: {
   context: SidebarContext;
   agencyName: string;
+  agencyId: string;
   clients: Client[];
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-screen">
-      <Sidebar context={context} clients={clients} agencyName={agencyName} />
+      <Sidebar context={context} clients={clients} agencyName={agencyName} agencyId={agencyId} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header agencyName={agencyName} pageLabel={pageLabelFor(context)} />
         <div className="min-w-0 flex-1 p-6">{children}</div>

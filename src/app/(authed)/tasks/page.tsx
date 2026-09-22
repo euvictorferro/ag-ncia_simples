@@ -16,7 +16,7 @@ export default async function TasksPage() {
   ]);
 
   return (
-    <AppFrame context={{ type: "agency", active: "tasks" }} agencyName={agencyName} clients={clients}>
+    <AppFrame context={{ type: "agency", active: "tasks" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
       <TasksTable agencyId={agencyId} initialTasks={tasks} clients={clients} members={members} />
     </AppFrame>
   );

@@ -4,6 +4,7 @@ import { listClients } from "@/lib/clients";
 import { listAgencyMembers, listTasksByClient } from "@/lib/tasks";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { TasksTable } from "@/components/tasks/TasksTable";
+import Link from "next/link";
 
 export default async function ClientTasksPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,12 +16,12 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
 
   if (!client) {
     return (
-      <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} clients={clients}>
+      <AppFrame context={{ type: "agency", active: "overview" }} agencyName={agencyName} agencyId={agencyId} clients={clients}>
         <p className="text-sm text-muted-foreground">
           Cliente não encontrado.{" "}
-          <a href="/overview" className="underline">
+          <Link href="/overview" className="underline">
             Voltar para a visão geral
-          </a>
+          </Link>
           .
         </p>
       </AppFrame>
@@ -36,6 +37,7 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
     <AppFrame
       context={{ type: "client", clientId: client.id, clientName: client.name, active: "tasks" }}
       agencyName={agencyName}
+      agencyId={agencyId}
       clients={clients}
     >
       <TasksTable agencyId={agencyId} initialTasks={tasks} members={members} lockedClientId={client.id} />

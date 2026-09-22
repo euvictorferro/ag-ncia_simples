@@ -12,7 +12,7 @@ export default async function ClientesPage() {
   const activeClients = allClients.filter((c) => !c.archived);
 
   return (
-    <AppFrame context={{ type: "agency", active: "clients" }} agencyName={agencyName} clients={activeClients}>
+    <AppFrame context={{ type: "agency", active: "clients" }} agencyName={agencyName} agencyId={agencyId} clients={activeClients}>
       <ClientsTable agencyId={agencyId} initialClients={allClients} />
     </AppFrame>
   );
