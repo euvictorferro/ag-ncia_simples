@@ -53,6 +53,7 @@ import {
   FlyoutPanel,
   type FlyoutPosition,
 } from "@/components/ui/SidebarFlyout";
+import type { Client } from "@/lib/clients";
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks" | "pessoal";
 export type ClientTab =
@@ -60,7 +61,7 @@ export type ClientTab =
 
 export type SidebarContext =
   | { type: "home"; active: HomeTab }
-  | { type: "clients" }
+  | { type: "clients"; agencyId: string; initialClients: Client[] }
   | { type: "client"; clientId: string; clientName: string; active: ClientTab }
   | { type: "inbox" }
   | { type: "chats" }
