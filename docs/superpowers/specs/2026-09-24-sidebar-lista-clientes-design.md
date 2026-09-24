@@ -25,8 +25,8 @@ existente) a partir da página `/clientes`.
 - Agrupamento por pasta/tag, times, ou qualquer hierarquia além de
   Ativos/Arquivados (usuário pediu ordem alfabética simples).
 - Drag-and-drop de reordenação (ordem é sempre alfabética).
-- Backend/persistência — segue o padrão do resto do projeto até aqui
-  (estado mockado local, sem Supabase ainda).
+- Avatar com emoji/imagem (fica pra depois — sem coluna `icon` no schema
+  hoje, ver seção 5).
 
 ## Design
 
@@ -42,14 +42,17 @@ existente) a partir da página `/clientes`.
 ### 2. Linha de cliente
 
 Cada linha mostra:
-- Avatar do cliente: emoji ou imagem (reaproveita `IconPicker`, o mesmo
-  seletor usado no `CreateSpaceModal`), com fallback de inicial do nome
-  se não houver ícone definido.
+- Avatar do cliente: círculo com a inicial do nome (sem picker de
+  emoji/imagem por enquanto — a tabela `clients` não tem coluna de ícone;
+  fica pra uma iteração futura se quiserem).
 - Nome do cliente (truncado).
 - No hover: botão `···` (reaproveita `SidebarFlyout`) com ações rápidas:
-  - Arquivar (ou Desarquivar, se já estiver na seção Arquivados)
-  - Renomear
-  - Excluir
+  - Arquivar (ou Desarquivar, se já estiver na seção Arquivados) — chama
+    `updateClient(supabase, id, { archived: !archived })` direto, sem modal.
+  - Renomear — abre o `ClientFormModal` já existente em modo edição
+    (já suporta editar nome e o toggle de arquivado).
+  - Excluir — confirmação simples (`window.confirm`) e chama
+    `deleteClient` (nova função, ver seção 5).
 - Sem botão `+` por linha (não existe "criar dentro" de um cliente aqui).
 - Sem drag handle (não é reordenável).
 
@@ -63,29 +66,47 @@ Cada linha mostra:
 ### 4. Criar cliente
 
 - O botão "+" do `SidebarPanelHeader` (já existe visualmente, hoje sem
-  ação) abre um modal de criação de cliente, no mesmo padrão do
-  `CreateSpaceModal`: campo de nome + `IconPicker` (emoji ou upload de
-  imagem via FileReader/data URL, sem Storage).
-- Ao confirmar, o novo cliente entra na lista de ativos na posição
+  ação) abre o `ClientFormModal` já existente (usado hoje pelo botão
+  "+ Novo cliente" da `ClientsGrid`), em modo criação.
+- Ao salvar, o novo cliente entra na lista de ativos na posição
   alfabética correta.
 
 ### 5. Dados
 
-- Lista de clientes mockada localmente (mesmo padrão do `SPACES_TREE` em
-  `Sidebar.tsx`): array de objetos `{ id, name, icon?, archived }` em
-  estado React (`useState`), sem persistência entre reloads.
-- Ações do menu `···` (arquivar/renomear/excluir) e o modal de criação
-  mutam esse estado local, igual ao que já foi feito para Spaces.
+- **Não é mock**: clientes já são dados reais no Supabase, tabela
+  `clients` (`src/lib/clients.ts`: `Client { id, agency_id, name,
+  archived, created_at }`, funções `listClients`/`createClient`/
+  `updateClient`).
+- A sidebar recebe a lista inicial de clientes via prop, carregada no
+  server component (`listClients(supabase, agencyId, { includeArchived:
+  true })` — mesma chamada que a página `/clientes` já faz para a
+  `ClientsGrid`) e mantém estado local (`useState`) sincronizado pelas
+  ações de criar/arquivar/renomear/excluir, no mesmo padrão que
+  `ClientsGrid` já usa (`upsert` local após `onSaved`).
+- **Excluir** cliente: não existe função de delete em `src/lib/clients.ts`
+  hoje — precisa adicionar `deleteClient(supabase, id)` (delete real na
+  tabela `clients`).
+- Ícone não existe no schema (ver seção 2) — avatar é sempre inicial do
+  nome, calculada no componente, não persistida.
 
 ## Componentes tocados/reaproveitados
 
+- `src/lib/clients.ts`: adicionar `deleteClient(supabase, id)`.
 - `src/components/layout/Sidebar.tsx`: novo componente de lista de
   clientes dentro do já existente `ClientsSidebarPanel` (hoje só tem o
-  header).
-- `src/components/ui/CreateSpaceModal.tsx` / `IconPicker.tsx`: reaproveitar
-  padrão para um modal de criar cliente (pode virar um componente novo
-  `CreateClientModal` seguindo a mesma estrutura, ou generalizar o
-  existente — decisão de implementação, não de design).
+  header); `SidebarContext` (`type: "clients"`) passa a carregar
+  `agencyId` + `initialClients` para a sidebar poder listar/criar/editar.
+- `src/components/layout/AppFrame.tsx`: sem mudança de estrutura, só o
+  tipo de `context` ganhando os campos novos.
+- `src/app/(authed)/clientes/page.tsx`: já chama `listClients(...,
+  { includeArchived: true })` — só passa a construir
+  `context={{ type: "clients", agencyId, initialClients: allClients }}`
+  em vez de `{ type: "clients" }`. As páginas de cliente individual
+  (`clientes/[id]/*/page.tsx`) usam `context.type === "client"`, não
+  `"clients"` — continuam intocadas.
+- `src/components/clientes/ClientFormModal.tsx`: reaproveitado como está
+  (cria em modo `client={null}`, edita/renomeia em modo `client={...}`)
+  — nenhuma mudança nele.
 - `src/components/ui/SidebarFlyout.tsx`: reaproveitado para o menu `···`
   de cada cliente.
 
