@@ -1,11 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type ServiceType = "trafego" | "conteudo" | "chamadas" | "360" | "outro";
+export type ClientHealth = "green" | "yellow" | "red";
+
 export type Client = {
   id: string;
   agency_id: string;
   name: string;
   archived: boolean;
   created_at: string;
+  niche: string | null;
+  service_type: ServiceType | null;
+  assigned_to: string | null;
+  health: ClientHealth;
 };
 
 export async function listClients(
@@ -27,10 +34,11 @@ export async function createClient(
   supabase: SupabaseClient,
   agencyId: string,
   name: string,
+  extra?: Partial<Pick<Client, "niche" | "service_type" | "assigned_to" | "health">>,
 ): Promise<Client> {
   const { data, error } = await supabase
     .from("clients")
-    .insert({ agency_id: agencyId, name })
+    .insert({ agency_id: agencyId, name, ...extra })
     .select()
     .single();
 
@@ -41,7 +49,7 @@ export async function createClient(
 export async function updateClient(
   supabase: SupabaseClient,
   id: string,
-  patch: Partial<Pick<Client, "name" | "archived">>,
+  patch: Partial<Pick<Client, "name" | "archived" | "niche" | "service_type" | "assigned_to" | "health">>,
 ): Promise<Client> {
   const { data, error } = await supabase
     .from("clients")
