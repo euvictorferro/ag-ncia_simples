@@ -686,13 +686,13 @@ function ProspeccaoSection() {
   );
 }
 
-function ChatsPagePanel() {
+function InboxPanel() {
   return (
     <>
       <div className="mb-4">
         <SectionLabel>Geral</SectionLabel>
         <nav className="flex flex-col gap-0.5">
-          <Link href="/chats" className={navClass(true)}>
+          <Link href="/inbox" className={navClass(true)}>
             <MessageSquare size={16} className="shrink-0" />
             Dashboard CRM
           </Link>
@@ -705,7 +705,7 @@ function ChatsPagePanel() {
   );
 }
 
-function ChatsPageSidebarPanel() {
+function InboxSidebarPanel() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -713,10 +713,10 @@ function ChatsPageSidebarPanel() {
       {searchOpen ? (
         <SidebarSearchBar onClose={() => setSearchOpen(false)} />
       ) : (
-        <SidebarPanelHeader title="Chats" onSearchOpen={() => setSearchOpen(true)} />
+        <SidebarPanelHeader title="Inbox" onSearchOpen={() => setSearchOpen(true)} />
       )}
       <div className="flex-1 overflow-y-auto px-2 pb-4">
-        <ChatsPagePanel />
+        <InboxPanel />
       </div>
     </div>
   );
@@ -1484,8 +1484,8 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
       </div>
     );
   }
-  if (context.type === "chats") {
-    return <ChatsPageSidebarPanel />;
+  if (context.type === "inbox") {
+    return <InboxSidebarPanel />;
   }
   return null;
 }
