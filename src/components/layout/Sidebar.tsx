@@ -2,6 +2,7 @@
 
 import { cloneElement, isValidElement, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { IconSvgElement } from "@hugeicons/react";
 import {
@@ -44,6 +45,17 @@ import {
   Trash2,
   GripVertical,
   X,
+  Inbox,
+  AtSign,
+  UserCheck,
+  Clock,
+  Folder,
+  Phone,
+  BarChart2,
+  Megaphone,
+  Tag,
+  Bot,
+  Contact,
 } from "lucide-react";
 import {
   SidebarTree,
@@ -58,6 +70,7 @@ import {
   FlyoutPanel,
   type FlyoutPosition,
 } from "@/components/ui/SidebarFlyout";
+import { BranchedRows } from "@/components/ui/BranchedRows";
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
@@ -182,6 +195,7 @@ function Avatar({ name, online }: { name: string; online?: boolean }) {
 
 function SectionCollapseHeader({
   title,
+  icon,
   open,
   onToggleOpen,
   onAdd,
@@ -189,6 +203,7 @@ function SectionCollapseHeader({
   subsection,
 }: {
   title: string;
+  icon?: React.ReactNode;
   open: boolean;
   onToggleOpen: () => void;
   onAdd?: () => void;
@@ -203,8 +218,9 @@ function SectionCollapseHeader({
         type="button"
         onClick={onToggleOpen}
         aria-label={open ? `Colapsar ${title}` : `Expandir ${title}`}
-        className="flex min-w-0 flex-1 items-center gap-1 text-left"
+        className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
       >
+        {icon}
         <span
           className={`truncate font-semibold uppercase tracking-wide text-muted-foreground ${
             subsection ? "text-[10px]" : "text-xs"
@@ -547,16 +563,16 @@ function ChatsSection() {
   );
 }
 
-type ProspectChannel = "whatsapp" | "instagram" | "email" | "apple";
+type InboxChannel = "whatsapp" | "instagram" | "email" | "apple";
 
-const CHANNEL_ICON: Record<ProspectChannel, IconSvgElement> = {
+const CHANNEL_ICON: Record<InboxChannel, IconSvgElement> = {
   whatsapp: WhatsappIcon,
   instagram: InstagramIcon,
   email: Mail01Icon,
   apple: AppleIcon,
 };
 
-function ChannelIcon({ channel }: { channel: ProspectChannel }) {
+function ChannelIcon({ channel }: { channel: InboxChannel }) {
   return (
     <HugeiconsIcon
       icon={CHANNEL_ICON[channel]}
@@ -566,141 +582,328 @@ function ChannelIcon({ channel }: { channel: ProspectChannel }) {
   );
 }
 
-type TeamChat = { id: string; name: string; online?: boolean };
-type Prospect = { id: string; name: string; channel: ProspectChannel };
+function InboxNavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  return (
+    <Link href={href} className={navClass(pathname === href)}>
+      {children}
+    </Link>
+  );
+}
 
-// ponytail: chats/prospecção mockados — trocar por dados reais quando existir CRM/integrações de canal
-const INITIAL_TEAM_CHATS: TeamChat[] = [
-  { id: "team-1", name: "Financeiro", online: true },
-  { id: "team-2", name: "Victor Ferro", online: true },
+const CONVERSATION_VIEWS: {
+  key: string;
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    key: "all",
+    label: "Todas as Conversas",
+    href: "/inbox/conversas",
+    icon: <Inbox size={14} className="shrink-0" />,
+  },
+  {
+    key: "mentions",
+    label: "Menções",
+    href: "/inbox/mencoes",
+    icon: <AtSign size={14} className="shrink-0" />,
+  },
+  {
+    key: "participating",
+    label: "Participando",
+    href: "/inbox/participando",
+    icon: <UserCheck size={14} className="shrink-0" />,
+  },
+  {
+    key: "unattended",
+    label: "Não atendidas",
+    href: "/inbox/nao-atendidas",
+    icon: <Clock size={14} className="shrink-0" />,
+  },
 ];
 
-const INITIAL_PROSPECTS: Prospect[] = [
-  { id: "prospect-1", name: "Ana Souza", channel: "whatsapp" },
-  { id: "prospect-2", name: "Bruno Lima", channel: "instagram" },
-  { id: "prospect-3", name: "Clínica Vitalis", channel: "email" },
-  { id: "prospect-4", name: "Diego Martins", channel: "apple" },
+type NamedRow = { id: string; name: string };
+
+// ponytail: pastas/canais/etiquetas mockados — trocar por dados reais quando existir CRM de verdade
+const INITIAL_FOLDERS: NamedRow[] = [
+  { id: "folder-1", name: "Leads quentes" },
+  { id: "folder-2", name: "Aguardando resposta" },
 ];
 
-function TeamChatsSection() {
-  const [chats, setChats] = useState(INITIAL_TEAM_CHATS);
-  const [open, setOpen] = useState(true);
-  const [title, setTitle] = useState("Chats da equipe");
+const INITIAL_CHANNELS_MOCK: { id: string; name: string; channel: InboxChannel }[] = [
+  { id: "ch-whatsapp", name: "WhatsApp", channel: "whatsapp" },
+  { id: "ch-instagram", name: "Instagram", channel: "instagram" },
+  { id: "ch-email", name: "E-mail", channel: "email" },
+  { id: "ch-apple", name: "Apple Messages", channel: "apple" },
+];
 
-  const addChat = () => {
-    const name = window.prompt("Nome do contato");
-    if (name) setChats((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+const INITIAL_LABELS: NamedRow[] = [
+  { id: "label-1", name: "Urgente" },
+  { id: "label-2", name: "Aguardando resposta" },
+  { id: "label-3", name: "Resolvido" },
+];
+
+function InboxFoldersGroup() {
+  const [folders, setFolders] = useState(INITIAL_FOLDERS);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("Folders");
+
+  const addFolder = () => {
+    const name = window.prompt("Nome da pasta");
+    if (name) setFolders((prev) => [...prev, { id: crypto.randomUUID(), name }]);
   };
 
   return (
-    <div className="mb-4">
+    <div>
       <SectionCollapseHeader
         title={title}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addChat}
+        onAdd={addFolder}
         onRenameSection={setTitle}
+        subsection
       />
       {open && (
-        <nav className="flex flex-col gap-0.5">
-          {chats.map((chat) => (
-            <RowWithMenu
-              key={chat.id}
-              label={chat.name}
-              content={
-                <>
-                  <Avatar name={chat.name} online={chat.online} />
-                  <span className="truncate">{chat.name}</span>
-                </>
-              }
-              onRename={() => {
-                const name = window.prompt("Novo nome", chat.name);
-                if (name)
-                  setChats((prev) =>
-                    prev.map((c) => (c.id === chat.id ? { ...c, name } : c)),
-                  );
-              }}
-              onDelete={() =>
-                setChats((prev) => prev.filter((c) => c.id !== chat.id))
-              }
-            />
-          ))}
-          <GhostAddRow label="New message" onClick={addChat} />
-        </nav>
+        <BranchedRows>
+          {[
+            ...folders.map((folder) => (
+              <RowWithMenu
+                key={folder.id}
+                label={folder.name}
+                content={
+                  <>
+                    <Folder size={14} className="shrink-0" />
+                    <span className="truncate">{folder.name}</span>
+                  </>
+                }
+                onRename={() => {
+                  const name = window.prompt("Novo nome", folder.name);
+                  if (name)
+                    setFolders((prev) =>
+                      prev.map((f) => (f.id === folder.id ? { ...f, name } : f)),
+                    );
+                }}
+                onDelete={() =>
+                  setFolders((prev) => prev.filter((f) => f.id !== folder.id))
+                }
+              />
+            )),
+            <GhostAddRow key="add" label="New folder" onClick={addFolder} />,
+          ]}
+        </BranchedRows>
       )}
     </div>
   );
 }
 
-function ProspeccaoSection() {
-  const [prospects, setProspects] = useState(INITIAL_PROSPECTS);
-  const [open, setOpen] = useState(true);
-  const [title, setTitle] = useState("Prospecção");
+function InboxChannelsGroup() {
+  const [channels, setChannels] = useState(INITIAL_CHANNELS_MOCK);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("Channels");
 
-  const addProspect = () => {
-    const name = window.prompt("Nome do contato");
+  const addChannel = () => {
+    const name = window.prompt("Nome do canal");
     if (name)
-      setProspects((prev) => [
+      setChannels((prev) => [
         ...prev,
         { id: crypto.randomUUID(), name, channel: "whatsapp" },
       ]);
   };
 
   return (
-    <div className="mb-4">
+    <div>
       <SectionCollapseHeader
         title={title}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addProspect}
+        onAdd={addChannel}
         onRenameSection={setTitle}
+        subsection
       />
       {open && (
-        <nav className="flex flex-col gap-0.5">
-          {prospects.map((prospect) => (
-            <RowWithMenu
-              key={prospect.id}
-              label={prospect.name}
-              content={
-                <>
-                  <ChannelIcon channel={prospect.channel} />
-                  <span className="truncate">{prospect.name}</span>
-                </>
-              }
-              onRename={() => {
-                const name = window.prompt("Novo nome", prospect.name);
-                if (name)
-                  setProspects((prev) =>
-                    prev.map((p) => (p.id === prospect.id ? { ...p, name } : p)),
-                  );
-              }}
-              onDelete={() =>
-                setProspects((prev) => prev.filter((p) => p.id !== prospect.id))
-              }
-            />
-          ))}
-          <GhostAddRow label="New contact" onClick={addProspect} />
-        </nav>
+        <BranchedRows>
+          {[
+            ...channels.map((channel) => (
+              <RowWithMenu
+                key={channel.id}
+                label={channel.name}
+                content={
+                  <>
+                    <ChannelIcon channel={channel.channel} />
+                    <span className="truncate">{channel.name}</span>
+                  </>
+                }
+                onRename={() => {
+                  const name = window.prompt("Novo nome", channel.name);
+                  if (name)
+                    setChannels((prev) =>
+                      prev.map((c) => (c.id === channel.id ? { ...c, name } : c)),
+                    );
+                }}
+                onDelete={() =>
+                  setChannels((prev) => prev.filter((c) => c.id !== channel.id))
+                }
+              />
+            )),
+            <GhostAddRow key="add" label="New channel" onClick={addChannel} />,
+          ]}
+        </BranchedRows>
       )}
     </div>
   );
 }
 
+function InboxLabelsGroup() {
+  const [labels, setLabels] = useState(INITIAL_LABELS);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("Labels");
+
+  const addLabel = () => {
+    const name = window.prompt("Nome da etiqueta");
+    if (name) setLabels((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+  };
+
+  return (
+    <div>
+      <SectionCollapseHeader
+        title={title}
+        open={open}
+        onToggleOpen={() => setOpen((v) => !v)}
+        onAdd={addLabel}
+        onRenameSection={setTitle}
+        subsection
+      />
+      {open && (
+        <BranchedRows>
+          {[
+            ...labels.map((label) => (
+              <RowWithMenu
+                key={label.id}
+                label={label.name}
+                content={
+                  <>
+                    <Tag size={14} className="shrink-0" />
+                    <span className="truncate">{label.name}</span>
+                  </>
+                }
+                onRename={() => {
+                  const name = window.prompt("Novo nome", label.name);
+                  if (name)
+                    setLabels((prev) =>
+                      prev.map((l) => (l.id === label.id ? { ...l, name } : l)),
+                    );
+                }}
+                onDelete={() =>
+                  setLabels((prev) => prev.filter((l) => l.id !== label.id))
+                }
+              />
+            )),
+            <GhostAddRow key="add" label="New label" onClick={addLabel} />,
+          ]}
+        </BranchedRows>
+      )}
+    </div>
+  );
+}
+
+function ConversationsSection() {
+  const [open, setOpen] = useState(true);
+  const [title, setTitle] = useState("Conversations");
+
+  return (
+    <div className="mb-4">
+      <SectionCollapseHeader
+        title={title}
+        icon={<MessageSquare size={13} className="shrink-0 text-muted-foreground" />}
+        open={open}
+        onToggleOpen={() => setOpen((v) => !v)}
+        onRenameSection={setTitle}
+      />
+      {open && (
+        <>
+          <nav className="mb-2 flex flex-col gap-0.5">
+            {CONVERSATION_VIEWS.map((view) => (
+              <InboxNavLink key={view.key} href={view.href}>
+                {view.icon}
+                {view.label}
+              </InboxNavLink>
+            ))}
+          </nav>
+          <InboxFoldersGroup />
+          <InboxChannelsGroup />
+          <InboxLabelsGroup />
+        </>
+      )}
+    </div>
+  );
+}
+
+const INBOX_FIXED_ITEMS: {
+  key: string;
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    key: "captain",
+    label: "Captain",
+    href: "/inbox/captain",
+    icon: <Bot size={16} className="shrink-0" />,
+  },
+  {
+    key: "calls",
+    label: "Ligações",
+    href: "/inbox/ligacoes",
+    icon: <Phone size={16} className="shrink-0" />,
+  },
+  {
+    key: "contacts",
+    label: "Contatos",
+    href: "/inbox/contatos",
+    icon: <Contact size={16} className="shrink-0" />,
+  },
+  {
+    key: "reports",
+    label: "Relatórios",
+    href: "/inbox/relatorios",
+    icon: <BarChart2 size={16} className="shrink-0" />,
+  },
+  {
+    key: "campaigns",
+    label: "Campanhas",
+    href: "/inbox/campanhas",
+    icon: <Megaphone size={16} className="shrink-0" />,
+  },
+];
+
 function InboxPanel() {
   return (
     <>
       <div className="mb-4">
-        <SectionLabel>Geral</SectionLabel>
         <nav className="flex flex-col gap-0.5">
-          <Link href="/inbox" className={navClass(true)}>
-            <MessageSquare size={16} className="shrink-0" />
-            Dashboard CRM
-          </Link>
+          <InboxNavLink href="/inbox">
+            <Inbox size={16} className="shrink-0" />
+            My Inbox
+          </InboxNavLink>
         </nav>
       </div>
+      <ConversationsSection />
       <div className="mx-3 mb-4 border-t border-border" />
-      <TeamChatsSection />
-      <ProspeccaoSection />
+      <nav className="flex flex-col gap-0.5">
+        {INBOX_FIXED_ITEMS.map((item) => (
+          <InboxNavLink key={item.key} href={item.href}>
+            {item.icon}
+            {item.label}
+          </InboxNavLink>
+        ))}
+      </nav>
     </>
   );
 }
