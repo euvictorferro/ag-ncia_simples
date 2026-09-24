@@ -14,6 +14,10 @@ import {
   Coins01Icon,
   DashboardSquare01Icon,
   UserIcon,
+  WhatsappIcon,
+  InstagramIcon,
+  AppleIcon,
+  Mail01Icon,
 } from "@hugeicons/core-free-icons";
 import {
   MessagesSquare,
@@ -538,6 +542,181 @@ function ChatsSection() {
             </nav>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+type ProspectChannel = "whatsapp" | "instagram" | "email" | "apple";
+
+const CHANNEL_ICON: Record<ProspectChannel, IconSvgElement> = {
+  whatsapp: WhatsappIcon,
+  instagram: InstagramIcon,
+  email: Mail01Icon,
+  apple: AppleIcon,
+};
+
+function ChannelIcon({ channel }: { channel: ProspectChannel }) {
+  return (
+    <HugeiconsIcon
+      icon={CHANNEL_ICON[channel]}
+      size={14}
+      className="shrink-0 text-muted-foreground"
+    />
+  );
+}
+
+type TeamChat = { id: string; name: string; online?: boolean };
+type Prospect = { id: string; name: string; channel: ProspectChannel };
+
+// ponytail: chats/prospecção mockados — trocar por dados reais quando existir CRM/integrações de canal
+const INITIAL_TEAM_CHATS: TeamChat[] = [
+  { id: "team-1", name: "Financeiro", online: true },
+  { id: "team-2", name: "Victor Ferro", online: true },
+];
+
+const INITIAL_PROSPECTS: Prospect[] = [
+  { id: "prospect-1", name: "Ana Souza", channel: "whatsapp" },
+  { id: "prospect-2", name: "Bruno Lima", channel: "instagram" },
+  { id: "prospect-3", name: "Clínica Vitalis", channel: "email" },
+  { id: "prospect-4", name: "Diego Martins", channel: "apple" },
+];
+
+function TeamChatsSection() {
+  const [chats, setChats] = useState(INITIAL_TEAM_CHATS);
+  const [open, setOpen] = useState(true);
+  const [title, setTitle] = useState("Chats da equipe");
+
+  const addChat = () => {
+    const name = window.prompt("Nome do contato");
+    if (name) setChats((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+  };
+
+  return (
+    <div className="mb-4">
+      <SectionCollapseHeader
+        title={title}
+        open={open}
+        onToggleOpen={() => setOpen((v) => !v)}
+        onAdd={addChat}
+        onRenameSection={setTitle}
+      />
+      {open && (
+        <nav className="flex flex-col gap-0.5">
+          {chats.map((chat) => (
+            <RowWithMenu
+              key={chat.id}
+              label={chat.name}
+              content={
+                <>
+                  <Avatar name={chat.name} online={chat.online} />
+                  <span className="truncate">{chat.name}</span>
+                </>
+              }
+              onRename={() => {
+                const name = window.prompt("Novo nome", chat.name);
+                if (name)
+                  setChats((prev) =>
+                    prev.map((c) => (c.id === chat.id ? { ...c, name } : c)),
+                  );
+              }}
+              onDelete={() =>
+                setChats((prev) => prev.filter((c) => c.id !== chat.id))
+              }
+            />
+          ))}
+          <GhostAddRow label="New message" onClick={addChat} />
+        </nav>
+      )}
+    </div>
+  );
+}
+
+function ProspeccaoSection() {
+  const [prospects, setProspects] = useState(INITIAL_PROSPECTS);
+  const [open, setOpen] = useState(true);
+  const [title, setTitle] = useState("Prospecção");
+
+  const addProspect = () => {
+    const name = window.prompt("Nome do contato");
+    if (name)
+      setProspects((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), name, channel: "whatsapp" },
+      ]);
+  };
+
+  return (
+    <div className="mb-4">
+      <SectionCollapseHeader
+        title={title}
+        open={open}
+        onToggleOpen={() => setOpen((v) => !v)}
+        onAdd={addProspect}
+        onRenameSection={setTitle}
+      />
+      {open && (
+        <nav className="flex flex-col gap-0.5">
+          {prospects.map((prospect) => (
+            <RowWithMenu
+              key={prospect.id}
+              label={prospect.name}
+              content={
+                <>
+                  <ChannelIcon channel={prospect.channel} />
+                  <span className="truncate">{prospect.name}</span>
+                </>
+              }
+              onRename={() => {
+                const name = window.prompt("Novo nome", prospect.name);
+                if (name)
+                  setProspects((prev) =>
+                    prev.map((p) => (p.id === prospect.id ? { ...p, name } : p)),
+                  );
+              }}
+              onDelete={() =>
+                setProspects((prev) => prev.filter((p) => p.id !== prospect.id))
+              }
+            />
+          ))}
+          <GhostAddRow label="New contact" onClick={addProspect} />
+        </nav>
+      )}
+    </div>
+  );
+}
+
+function ChatsPagePanel() {
+  return (
+    <>
+      <div className="mb-4">
+        <SectionLabel>Geral</SectionLabel>
+        <nav className="flex flex-col gap-0.5">
+          <Link href="/chats" className={navClass(true)}>
+            <MessageSquare size={16} className="shrink-0" />
+            Dashboard CRM
+          </Link>
+        </nav>
+      </div>
+      <div className="mx-3 mb-4 border-t border-border" />
+      <TeamChatsSection />
+      <ProspeccaoSection />
+    </>
+  );
+}
+
+function ChatsPageSidebarPanel() {
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  return (
+    <div className="group/sidebar-panel flex h-full flex-col">
+      {searchOpen ? (
+        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+      ) : (
+        <SidebarPanelHeader title="Chats" onSearchOpen={() => setSearchOpen(true)} />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <ChatsPagePanel />
       </div>
     </div>
   );
@@ -1304,6 +1483,9 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
         />
       </div>
     );
+  }
+  if (context.type === "chats") {
+    return <ChatsPageSidebarPanel />;
   }
   return null;
 }

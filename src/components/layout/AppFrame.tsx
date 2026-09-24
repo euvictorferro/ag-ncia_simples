@@ -6,7 +6,7 @@ const HAS_PANEL: Record<SidebarContext["type"], boolean> = {
   clients: true,
   client: true,
   inbox: false,
-  chats: false,
+  chats: true,
   nodes: false,
   calendario: false,
   automacoes: false,
