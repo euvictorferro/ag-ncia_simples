@@ -77,6 +77,12 @@ import { BranchedTree, type BranchedTreeNode } from "@/components/ui/BranchedTre
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 import { CreateEventModal, type CalendarEvent } from "@/components/calendario/CreateEventModal";
 import { CreateAutomationModal } from "@/components/automacoes/CreateAutomationModal";
+import { CreateAtaModal, type Ata } from "@/components/atas/CreateAtaModal";
+import {
+  CreateDocumentModal,
+  type DocRecord,
+  type DocumentStatus,
+} from "@/components/atas/CreateDocumentModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
 
@@ -93,7 +99,7 @@ export type SidebarContext =
   | { type: "nodes" }
   | { type: "calendario"; clients: Client[] }
   | { type: "automacoes" }
-  | { type: "atas" }
+  | { type: "atas"; clients: Client[] }
   | { type: "conexoes" };
 
 function navClass(isActive: boolean): string {
@@ -1226,6 +1232,144 @@ function AutomacoesSidebarPanel() {
   );
 }
 
+// ponytail: atas/documentos mockados — trocar por dados reais quando existir gravação/transcrição e integração com Autentique/DocuSign
+const INITIAL_ATAS: Ata[] = [
+  { id: "ata-1", title: "Reunião de kickoff", date: daysFromNow(-3, 10) },
+];
+
+const INITIAL_DOCUMENTS: DocRecord[] = [
+  { id: "doc-1", title: "Contrato de prestação de serviço", status: "assinado" },
+  { id: "doc-2", title: "Termo de aditivo", status: "pendente" },
+];
+
+function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
+  return (
+    <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${status === "assinado" ? "bg-emerald-400" : "bg-muted-foreground/40"}`}
+        aria-hidden="true"
+      />
+      {status === "assinado" ? "Assinado" : "Pendente"}
+    </span>
+  );
+}
+
+function AtasDocumentosSidebarPanel({ clients }: { clients: Client[] }) {
+  const [atas, setAtas] = useState(INITIAL_ATAS);
+  const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [atasOpen, setAtasOpen] = useState(true);
+  const [documentsOpen, setDocumentsOpen] = useState(true);
+  const [editingAta, setEditingAta] = useState<Ata | null | "new">(null);
+  const [editingDocument, setEditingDocument] = useState<DocRecord | null | "new">(null);
+
+  function upsertAta(ata: Ata) {
+    setAtas((prev) => {
+      const exists = prev.some((a) => a.id === ata.id);
+      return exists ? prev.map((a) => (a.id === ata.id ? ata : a)) : [...prev, ata];
+    });
+  }
+
+  function upsertDocument(document: DocRecord) {
+    setDocuments((prev) => {
+      const exists = prev.some((d) => d.id === document.id);
+      return exists ? prev.map((d) => (d.id === document.id ? document : d)) : [...prev, document];
+    });
+  }
+
+  return (
+    <div className="group/sidebar-panel flex h-full flex-col">
+      {searchOpen ? (
+        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+      ) : (
+        <SidebarPanelHeader title="Atas e Documentos" onSearchOpen={() => setSearchOpen(true)} />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <div className="mb-4">
+          <SectionCollapseHeader
+            title="Atas"
+            open={atasOpen}
+            onToggleOpen={() => setAtasOpen((v) => !v)}
+            onAdd={() => setEditingAta("new")}
+            onRenameSection={() => {}}
+          />
+          {atasOpen && (
+            <nav className="flex flex-col gap-0.5">
+              {atas.map((ata) => (
+                <RowWithMenu
+                  key={ata.id}
+                  label={ata.title}
+                  content={
+                    <>
+                      <FileText size={14} className="mt-0.5 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{ata.title}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {new Date(ata.date).toLocaleDateString("pt-BR")}
+                          {ata.clientName ? ` · ${ata.clientName}` : ""}
+                        </span>
+                      </span>
+                    </>
+                  }
+                  onRename={() => setEditingAta(ata)}
+                  onDelete={() => setAtas((prev) => prev.filter((a) => a.id !== ata.id))}
+                />
+              ))}
+              <GhostAddRow label="New ata" onClick={() => setEditingAta("new")} />
+            </nav>
+          )}
+        </div>
+        <div>
+          <SectionCollapseHeader
+            title="Documentos"
+            open={documentsOpen}
+            onToggleOpen={() => setDocumentsOpen((v) => !v)}
+            onAdd={() => setEditingDocument("new")}
+            onRenameSection={() => {}}
+          />
+          {documentsOpen && (
+            <nav className="flex flex-col gap-0.5">
+              {documents.map((document) => (
+                <RowWithMenu
+                  key={document.id}
+                  label={document.title}
+                  content={
+                    <>
+                      <FileText size={14} className="shrink-0" />
+                      <span className="truncate">{document.title}</span>
+                      <DocumentStatusBadge status={document.status} />
+                    </>
+                  }
+                  onRename={() => setEditingDocument(document)}
+                  onDelete={() =>
+                    setDocuments((prev) => prev.filter((d) => d.id !== document.id))
+                  }
+                />
+              ))}
+              <GhostAddRow label="New document" onClick={() => setEditingDocument("new")} />
+            </nav>
+          )}
+        </div>
+      </div>
+      {editingAta !== null && (
+        <CreateAtaModal
+          clients={clients}
+          ata={editingAta === "new" ? null : editingAta}
+          onClose={() => setEditingAta(null)}
+          onSave={upsertAta}
+        />
+      )}
+      {editingDocument !== null && (
+        <CreateDocumentModal
+          document={editingDocument === "new" ? null : editingDocument}
+          onClose={() => setEditingDocument(null)}
+          onSave={upsertDocument}
+        />
+      )}
+    </div>
+  );
+}
+
 function SpacesMenu({
   position,
   onClose,
@@ -1996,6 +2140,9 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
   }
   if (context.type === "automacoes") {
     return <AutomacoesSidebarPanel />;
+  }
+  if (context.type === "atas") {
+    return <AtasDocumentosSidebarPanel clients={context.clients} />;
   }
   return null;
 }
