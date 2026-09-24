@@ -53,3 +53,11 @@ export async function updateClient(
   if (error) throw error;
   return data as Client;
 }
+
+export async function deleteClient(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) throw error;
+}
