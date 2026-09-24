@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   Eye,
   Archive,
+  ArchiveRestore,
   Shuffle,
   Hash,
   Lock,
@@ -53,7 +54,9 @@ import {
   FlyoutPanel,
   type FlyoutPosition,
 } from "@/components/ui/SidebarFlyout";
-import type { Client } from "@/lib/clients";
+import { ClientFormModal } from "@/components/clientes/ClientFormModal";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { updateClient, deleteClient, type Client } from "@/lib/clients";
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks" | "pessoal";
 export type ClientTab =
@@ -1071,15 +1074,208 @@ function HomeSidebarPanel({ active }: { active: HomeTab }) {
   );
 }
 
-function ClientsSidebarPanel() {
+function getInitial(name: string): string {
+  const trimmed = name.trim();
+  return trimmed ? trimmed[0].toUpperCase() : "?";
+}
+
+function ClientAvatar({ name }: { name: string }) {
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground-strong">
+      {getInitial(name)}
+    </span>
+  );
+}
+
+function ClientRow({
+  client,
+  busy,
+  onToggleArchived,
+  onRename,
+  onDelete,
+}: {
+  client: Client;
+  busy: boolean;
+  onToggleArchived: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const menu = useFlyout();
+
+  return (
+    <div className="group/row relative flex items-center gap-1 rounded-md pr-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+      <Link
+        href={`/clientes/${client.id}/tarefas`}
+        className="flex h-full min-w-0 flex-1 items-center gap-2 truncate px-3 py-2 text-left"
+      >
+        <ClientAvatar name={client.name} />
+        <span className="truncate">{client.name}</span>
+      </Link>
+      <div className="hidden shrink-0 items-center group-hover/row:flex">
+        <button
+          type="button"
+          aria-label={`Mais opções de ${client.name}`}
+          onClick={menu.toggleAt}
+          disabled={busy}
+          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-border hover:text-foreground disabled:opacity-50"
+        >
+          <MoreHorizontal size={12} />
+        </button>
+      </div>
+      {menu.position && (
+        <FlyoutPanel position={menu.position} onClose={menu.close} width={200}>
+          <button
+            type="button"
+            onClick={() => {
+              onToggleArchived();
+              menu.close();
+            }}
+            disabled={busy}
+            className={ROW_CLASS}
+          >
+            {client.archived ? (
+              <>
+                <ArchiveRestore size={14} /> Desarquivar
+              </>
+            ) : (
+              <>
+                <Archive size={14} /> Arquivar
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onRename();
+              menu.close();
+            }}
+            disabled={busy}
+            className={ROW_CLASS}
+          >
+            <Pencil size={14} /> Renomear
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => {
+              onDelete();
+              menu.close();
+            }}
+            disabled={busy}
+            className={`${ROW_CLASS} text-red-400`}
+          >
+            <Trash2 size={14} /> Excluir
+          </button>
+        </FlyoutPanel>
+      )}
+    </div>
+  );
+}
+
+function ClientsSidebarPanel({
+  agencyId,
+  initialClients,
+}: {
+  agencyId: string;
+  initialClients: Client[];
+}) {
+  const [clients, setClients] = useState(initialClients);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [editing, setEditing] = useState<Client | null | "new">(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const active = clients.filter((c) => !c.archived);
+  const archived = clients.filter((c) => c.archived);
+
+  function upsert(client: Client) {
+    setClients((prev) => {
+      const exists = prev.some((c) => c.id === client.id);
+      return exists
+        ? prev.map((c) => (c.id === client.id ? client : c))
+        : [...prev, client].sort((a, b) => a.name.localeCompare(b.name));
+    });
+  }
+
+  async function toggleArchived(client: Client) {
+    setBusyId(client.id);
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const saved = await updateClient(supabase, client.id, { archived: !client.archived });
+      upsert(saved);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(client: Client) {
+    if (!window.confirm(`Excluir "${client.name}"? Essa ação não pode ser desfeita.`)) return;
+    setBusyId(client.id);
+    try {
+      const supabase = createBrowserSupabaseClient();
+      await deleteClient(supabase, client.id);
+      setClients((prev) => prev.filter((c) => c.id !== client.id));
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div className="group/sidebar-panel flex h-full flex-col">
       {searchOpen ? (
         <SidebarSearchBar onClose={() => setSearchOpen(false)} />
       ) : (
-        <SidebarPanelHeader title="Clientes" onSearchOpen={() => setSearchOpen(true)} />
+        <SidebarPanelHeader
+          title="Clientes"
+          onSearchOpen={() => setSearchOpen(true)}
+          onAdd={() => setEditing("new")}
+        />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <nav className="flex flex-col gap-0.5">
+          {active.map((client) => (
+            <ClientRow
+              key={client.id}
+              client={client}
+              busy={busyId === client.id}
+              onToggleArchived={() => toggleArchived(client)}
+              onRename={() => setEditing(client)}
+              onDelete={() => handleDelete(client)}
+            />
+          ))}
+        </nav>
+        {archived.length > 0 && (
+          <div className="mt-4">
+            <SectionCollapseHeader
+              title="Arquivados"
+              open={archivedOpen}
+              onToggleOpen={() => setArchivedOpen((v) => !v)}
+              onRenameSection={() => {}}
+            />
+            {archivedOpen && (
+              <nav className="flex flex-col gap-0.5">
+                {archived.map((client) => (
+                  <ClientRow
+                    key={client.id}
+                    client={client}
+                    busy={busyId === client.id}
+                    onToggleArchived={() => toggleArchived(client)}
+                    onRename={() => setEditing(client)}
+                    onDelete={() => handleDelete(client)}
+                  />
+                ))}
+              </nav>
+            )}
+          </div>
+        )}
+      </div>
+      {editing !== null && (
+        <ClientFormModal
+          agencyId={agencyId}
+          client={editing === "new" ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={upsert}
+        />
       )}
     </div>
   );
@@ -1090,7 +1286,12 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
     return <HomeSidebarPanel active={context.active} />;
   }
   if (context.type === "clients") {
-    return <ClientsSidebarPanel />;
+    return (
+      <ClientsSidebarPanel
+        agencyId={context.agencyId}
+        initialClients={context.initialClients}
+      />
+    );
   }
   if (context.type === "client") {
     return (
