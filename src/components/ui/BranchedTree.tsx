@@ -63,14 +63,12 @@ function BranchedRow({ node }: { node: BranchedTreeNode }) {
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-md py-2 pr-1 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-2 pr-1 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <span className="flex min-w-0 items-center gap-1.5 truncate">
-                {node.content}
-              </span>
+              {node.content}
               <ChevronDown
                 size={12}
-                className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+                className={`hidden shrink-0 text-muted-foreground transition-transform group-hover/branch-row:inline-block ${open ? "" : "-rotate-90"}`}
               />
             </button>
           ) : (

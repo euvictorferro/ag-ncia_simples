@@ -379,13 +379,14 @@ function TreeRow({
             }}
             className="flex h-full min-w-0 flex-1 items-center gap-1"
           >
-            {hasChildren ? (
-              <ChevronRight size={11} className={`shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
-            ) : (
-              <span className="inline-block w-[11px] shrink-0" />
-            )}
             <NodeIconView icon={node.icon} kind={node.kind} />
             <span className="truncate">{node.label}</span>
+            {hasChildren && (
+              <ChevronRight
+                size={11}
+                className={`hidden shrink-0 text-muted-foreground transition-transform group-hover/node:inline-block ${isOpen ? "rotate-90" : ""}`}
+              />
+            )}
           </button>
           <div className="hidden shrink-0 items-center gap-0.5 group-hover/node:flex">
             <button

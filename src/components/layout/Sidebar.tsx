@@ -202,7 +202,6 @@ function SectionCollapseHeader({
   onAdd,
   onRenameSection,
   subsection,
-  alwaysShowChevron,
   plain,
 }: {
   title: string;
@@ -212,7 +211,6 @@ function SectionCollapseHeader({
   onAdd?: () => void;
   onRenameSection: (title: string) => void;
   subsection?: boolean;
-  alwaysShowChevron?: boolean;
   plain?: boolean;
 }) {
   const menu = useFlyout();
@@ -239,9 +237,7 @@ function SectionCollapseHeader({
         </span>
         <ChevronDown
           size={12}
-          className={`shrink-0 text-muted-foreground transition-transform ${
-            alwaysShowChevron ? "inline-block" : "hidden group-hover/section-header:inline-block"
-          } ${alwaysShowChevron ? (open ? "rotate-180" : "") : open ? "" : "-rotate-90"}`}
+          className={`hidden shrink-0 text-muted-foreground transition-transform group-hover/section-header:inline-block ${open ? "" : "-rotate-90"}`}
         />
       </button>
       <div className="hidden shrink-0 items-center gap-0.5 group-hover/section-header:flex">
@@ -687,7 +683,7 @@ function useFoldersNode(): BranchedTreeNode {
     content: (
       <>
         <Folder size={14} className="shrink-0" />
-        <span className="truncate text-sm text-muted-foreground">Folders</span>
+        <span className="min-w-0 truncate text-sm text-muted-foreground">Folders</span>
       </>
     ),
     actions: <GroupAddAction label="Adicionar pasta" onClick={addFolder} />,
@@ -741,7 +737,7 @@ function useChannelsNode(): BranchedTreeNode {
     content: (
       <>
         <Columns2 size={14} className="shrink-0" />
-        <span className="truncate text-sm text-muted-foreground">Channels</span>
+        <span className="min-w-0 truncate text-sm text-muted-foreground">Channels</span>
       </>
     ),
     actions: <GroupAddAction label="Adicionar canal" onClick={addChannel} />,
@@ -791,7 +787,7 @@ function useLabelsNode(): BranchedTreeNode {
     content: (
       <>
         <Tag size={14} className="shrink-0" />
-        <span className="truncate text-sm text-muted-foreground">Labels</span>
+        <span className="min-w-0 truncate text-sm text-muted-foreground">Labels</span>
       </>
     ),
     actions: <GroupAddAction label="Adicionar etiqueta" onClick={addLabel} />,
@@ -861,7 +857,6 @@ function ConversationsSection() {
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
         onRenameSection={setTitle}
-        alwaysShowChevron
         plain
       />
       {open && <BranchedTree nodes={nodes} />}
