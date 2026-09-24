@@ -91,7 +91,13 @@ import {
   type DocumentStatus,
 } from "@/components/atas/CreateDocumentModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { updateClient, deleteClient, type Client } from "@/lib/clients";
+import {
+  updateClient,
+  deleteClient,
+  type Client,
+  type ServiceType,
+  type ClientHealth,
+} from "@/lib/clients";
 import type { AgencyMember } from "@/lib/tasks";
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks" | "pessoal";
@@ -2039,6 +2045,12 @@ function ClientAvatar({ name }: { name: string }) {
   );
 }
 
+const HEALTH_COLOR: Record<ClientHealth, string> = {
+  green: "bg-emerald-400",
+  yellow: "bg-amber-400",
+  red: "bg-red-400",
+};
+
 function ClientRow({
   client,
   busy,
@@ -2060,6 +2072,10 @@ function ClientRow({
         href={`/clientes/${client.id}/tarefas`}
         className="flex h-full min-w-0 flex-1 items-center gap-2 truncate px-3 py-2 text-left"
       >
+        <span
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${HEALTH_COLOR[client.health]}`}
+          aria-hidden="true"
+        />
         <ClientAvatar name={client.name} />
         <span className="truncate">{client.name}</span>
       </Link>
@@ -2124,11 +2140,105 @@ function ClientRow({
   );
 }
 
+type GroupBy = "none" | "service_type" | "assigned_to" | "niche";
+
+const SERVICE_TYPE_LABEL: Record<ServiceType, string> = {
+  trafego: "Tráfego",
+  conteudo: "Conteúdo",
+  chamadas: "Chamadas",
+  "360": "360",
+  outro: "Outro",
+};
+
+function groupLabel(groupBy: GroupBy, key: string, members: AgencyMember[]): string {
+  if (groupBy === "service_type") {
+    return key === "" ? "Sem plano/serviço" : SERVICE_TYPE_LABEL[key as ServiceType];
+  }
+  if (groupBy === "assigned_to") {
+    if (key === "") return "Sem responsável";
+    const member = members.find((m) => m.id === key);
+    return member ? member.user_id.slice(0, 8) : "Sem responsável";
+  }
+  if (groupBy === "niche") {
+    return key === "" ? "Sem nicho" : key;
+  }
+  return "";
+}
+
+function groupClients(clients: Client[], groupBy: GroupBy): { key: string; clients: Client[] }[] {
+  if (groupBy === "none") return [{ key: "", clients }];
+  const map = new Map<string, Client[]>();
+  for (const client of clients) {
+    const key =
+      groupBy === "service_type"
+        ? (client.service_type ?? "")
+        : groupBy === "assigned_to"
+          ? (client.assigned_to ?? "")
+          : (client.niche ?? "");
+    const bucket = map.get(key) ?? [];
+    bucket.push(client);
+    map.set(key, bucket);
+  }
+  const entries = Array.from(map.entries()).map(([key, clients]) => ({ key, clients }));
+  // grupo "sem valor" (key === "") sempre por último
+  entries.sort((a, b) => {
+    if (a.key === "" && b.key !== "") return 1;
+    if (b.key === "" && a.key !== "") return -1;
+    return a.key.localeCompare(b.key);
+  });
+  return entries;
+}
+
+function ClientGroupSection({
+  title,
+  clients,
+  busyId,
+  onToggleArchived,
+  onRename,
+  onDelete,
+}: {
+  title: string;
+  clients: Client[];
+  busyId: string | null;
+  onToggleArchived: (client: Client) => void;
+  onRename: (client: Client) => void;
+  onDelete: (client: Client) => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="mb-2">
+      <SectionCollapseHeader
+        title={title}
+        open={open}
+        onToggleOpen={() => setOpen((v) => !v)}
+        onRenameSection={() => {}}
+      />
+      {open && (
+        <nav className="flex flex-col gap-0.5">
+          {clients.map((client) => (
+            <ClientRow
+              key={client.id}
+              client={client}
+              busy={busyId === client.id}
+              onToggleArchived={() => onToggleArchived(client)}
+              onRename={() => onRename(client)}
+              onDelete={() => onDelete(client)}
+            />
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 function ClientsSidebarPanel({
   agencyId,
+  members,
   initialClients,
 }: {
   agencyId: string;
+  members: AgencyMember[];
   initialClients: Client[];
 }) {
   const [clients, setClients] = useState(initialClients);
@@ -2136,9 +2246,11 @@ function ClientsSidebarPanel({
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null | "new">(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
 
   const active = clients.filter((c) => !c.archived);
   const archived = clients.filter((c) => c.archived);
+  const groups = groupClients(active, groupBy);
 
   function upsert(client: Client) {
     setClients((prev) => {
@@ -2185,18 +2297,45 @@ function ClientsSidebarPanel({
         />
       )}
       <div className="flex-1 overflow-y-auto px-2 pb-4">
-        <nav className="flex flex-col gap-0.5">
-          {active.map((client) => (
-            <ClientRow
-              key={client.id}
-              client={client}
-              busy={busyId === client.id}
-              onToggleArchived={() => toggleArchived(client)}
-              onRename={() => setEditing(client)}
-              onDelete={() => handleDelete(client)}
+        <div className="mb-2 px-1">
+          <select
+            aria-label="Agrupar por"
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-foreground-strong"
+          >
+            <option value="none">Agrupar por: Nenhum</option>
+            <option value="service_type">Agrupar por: Plano ou serviço</option>
+            <option value="assigned_to">Agrupar por: Responsável</option>
+            <option value="niche">Agrupar por: Nicho</option>
+          </select>
+        </div>
+        {groupBy === "none" ? (
+          <nav className="flex flex-col gap-0.5">
+            {active.map((client) => (
+              <ClientRow
+                key={client.id}
+                client={client}
+                busy={busyId === client.id}
+                onToggleArchived={() => toggleArchived(client)}
+                onRename={() => setEditing(client)}
+                onDelete={() => handleDelete(client)}
+              />
+            ))}
+          </nav>
+        ) : (
+          groups.map((group) => (
+            <ClientGroupSection
+              key={group.key}
+              title={groupLabel(groupBy, group.key, members)}
+              clients={group.clients}
+              busyId={busyId}
+              onToggleArchived={toggleArchived}
+              onRename={setEditing}
+              onDelete={handleDelete}
             />
-          ))}
-        </nav>
+          ))
+        )}
         {archived.length > 0 && (
           <div className="mt-4">
             <SectionCollapseHeader
@@ -2225,6 +2364,7 @@ function ClientsSidebarPanel({
       {editing !== null && (
         <ClientFormModal
           agencyId={agencyId}
+          members={members}
           client={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
           onSaved={upsert}
@@ -2242,6 +2382,7 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
     return (
       <ClientsSidebarPanel
         agencyId={context.agencyId}
+        members={context.members}
         initialClients={context.initialClients}
       />
     );
