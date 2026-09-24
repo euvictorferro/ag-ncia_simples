@@ -58,6 +58,7 @@ import {
   Contact,
   Columns2,
   Calendar as CalendarIcon,
+  Zap,
 } from "lucide-react";
 import {
   SidebarTree,
@@ -75,6 +76,7 @@ import {
 import { BranchedTree, type BranchedTreeNode } from "@/components/ui/BranchedTree";
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 import { CreateEventModal, type CalendarEvent } from "@/components/calendario/CreateEventModal";
+import { CreateAutomationModal } from "@/components/automacoes/CreateAutomationModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
 
@@ -1095,6 +1097,135 @@ function CalendarioSidebarPanel({ clients }: { clients: Client[] }) {
   );
 }
 
+type AutomationTemplate = {
+  id: string;
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  active: boolean;
+};
+
+const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
+  {
+    id: "cliente-novo",
+    label: "Cliente novo",
+    href: "/automacoes/cliente-novo",
+    icon: <Bot size={14} className="shrink-0" />,
+    active: true,
+  },
+  {
+    id: "calendario-conteudo",
+    label: "Calendário de conteúdo",
+    href: "/automacoes/calendario-conteudo",
+    icon: <CalendarIcon size={14} className="shrink-0" />,
+    active: true,
+  },
+  {
+    id: "relatorio",
+    label: "Relatório automático",
+    href: "/automacoes/relatorio",
+    icon: <BarChart2 size={14} className="shrink-0" />,
+    active: false,
+  },
+];
+
+function AutomationStatusBadge({ active }: { active: boolean }) {
+  return (
+    <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-400" : "bg-muted-foreground/40"}`}
+        aria-hidden="true"
+      />
+      {active ? "Ativo" : "Inativo"}
+    </span>
+  );
+}
+
+type AutomationRow = { id: string; name: string };
+
+// ponytail: automações mockadas — trocar por dados reais quando existir o construtor de workflow
+const INITIAL_AUTOMATIONS: AutomationRow[] = [
+  { id: "auto-1", name: "Envio de relatório semanal" },
+];
+
+function AutomacoesSidebarPanel() {
+  const [automations, setAutomations] = useState(INITIAL_AUTOMATIONS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [myAutomationsOpen, setMyAutomationsOpen] = useState(true);
+  const [creating, setCreating] = useState(false);
+
+  const addAutomation = (name: string) => {
+    setAutomations((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+  };
+
+  return (
+    <div className="group/sidebar-panel flex h-full flex-col">
+      {searchOpen ? (
+        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+      ) : (
+        <SidebarPanelHeader
+          title="Automações"
+          onSearchOpen={() => setSearchOpen(true)}
+          onAdd={() => setCreating(true)}
+        />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <div className="mb-4">
+          <SectionLabel>Templates</SectionLabel>
+          <nav className="flex flex-col gap-0.5">
+            {AUTOMATION_TEMPLATES.map((template) => (
+              <Link key={template.id} href={template.href} className={navClass(false)}>
+                {template.icon}
+                <span className="truncate">{template.label}</span>
+                <AutomationStatusBadge active={template.active} />
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <SectionCollapseHeader
+            title="Minhas Automações"
+            open={myAutomationsOpen}
+            onToggleOpen={() => setMyAutomationsOpen((v) => !v)}
+            onAdd={() => setCreating(true)}
+            onRenameSection={() => {}}
+          />
+          {myAutomationsOpen && (
+            <nav className="flex flex-col gap-0.5">
+              {automations.map((automation) => (
+                <RowWithMenu
+                  key={automation.id}
+                  label={automation.name}
+                  content={
+                    <>
+                      <Zap size={14} className="shrink-0" />
+                      <span className="truncate">{automation.name}</span>
+                    </>
+                  }
+                  onRename={() => {
+                    const name = window.prompt("Novo nome", automation.name);
+                    if (name)
+                      setAutomations((prev) =>
+                        prev.map((a) => (a.id === automation.id ? { ...a, name } : a)),
+                      );
+                  }}
+                  onDelete={() =>
+                    setAutomations((prev) => prev.filter((a) => a.id !== automation.id))
+                  }
+                />
+              ))}
+              <GhostAddRow label="New automation" onClick={() => setCreating(true)} />
+            </nav>
+          )}
+        </div>
+      </div>
+      {creating && (
+        <CreateAutomationModal onClose={() => setCreating(false)} onCreate={addAutomation} />
+      )}
+    </div>
+  );
+}
+
 function SpacesMenu({
   position,
   onClose,
@@ -1862,6 +1993,9 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
   }
   if (context.type === "calendario") {
     return <CalendarioSidebarPanel clients={context.clients} />;
+  }
+  if (context.type === "automacoes") {
+    return <AutomacoesSidebarPanel />;
   }
   return null;
 }
