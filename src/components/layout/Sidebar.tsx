@@ -71,7 +71,7 @@ import {
   FlyoutPanel,
   type FlyoutPosition,
 } from "@/components/ui/SidebarFlyout";
-import { BranchedRows } from "@/components/ui/BranchedRows";
+import { BranchedTree, type BranchedTreeNode } from "@/components/ui/BranchedTree";
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
@@ -661,65 +661,71 @@ const INITIAL_LABELS: NamedRow[] = [
   { id: "label-3", name: "Resolvido" },
 ];
 
-function InboxFoldersGroup() {
+function GroupAddAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-border hover:text-foreground"
+    >
+      <Plus size={12} />
+    </button>
+  );
+}
+
+function useFoldersNode(): BranchedTreeNode {
   const [folders, setFolders] = useState(INITIAL_FOLDERS);
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("Folders");
 
   const addFolder = () => {
     const name = window.prompt("Nome da pasta");
     if (name) setFolders((prev) => [...prev, { id: crypto.randomUUID(), name }]);
   };
 
-  return (
-    <div>
-      <SectionCollapseHeader
-        title={title}
-        icon={<Folder size={14} className="shrink-0 text-muted-foreground" />}
-        open={open}
-        onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addFolder}
-        onRenameSection={setTitle}
-        alwaysShowChevron
-        plain
-      />
-      {open && (
-        <BranchedRows>
-          {[
-            ...folders.map((folder) => (
-              <RowWithMenu
-                key={folder.id}
-                label={folder.name}
-                content={
-                  <>
-                    <Folder size={14} className="shrink-0" />
-                    <span className="truncate">{folder.name}</span>
-                  </>
-                }
-                onRename={() => {
-                  const name = window.prompt("Novo nome", folder.name);
-                  if (name)
-                    setFolders((prev) =>
-                      prev.map((f) => (f.id === folder.id ? { ...f, name } : f)),
-                    );
-                }}
-                onDelete={() =>
-                  setFolders((prev) => prev.filter((f) => f.id !== folder.id))
-                }
-              />
-            )),
-            <GhostAddRow key="add" label="New folder" onClick={addFolder} />,
-          ]}
-        </BranchedRows>
-      )}
-    </div>
-  );
+  return {
+    id: "folders",
+    content: (
+      <>
+        <Folder size={14} className="shrink-0" />
+        <span className="truncate text-sm text-muted-foreground">Folders</span>
+      </>
+    ),
+    actions: <GroupAddAction label="Adicionar pasta" onClick={addFolder} />,
+    children: [
+      ...folders.map((folder) => ({
+        id: folder.id,
+        content: (
+          <RowWithMenu
+            label={folder.name}
+            content={
+              <>
+                <Folder size={14} className="shrink-0" />
+                <span className="truncate">{folder.name}</span>
+              </>
+            }
+            onRename={() => {
+              const name = window.prompt("Novo nome", folder.name);
+              if (name)
+                setFolders((prev) =>
+                  prev.map((f) => (f.id === folder.id ? { ...f, name } : f)),
+                );
+            }}
+            onDelete={() =>
+              setFolders((prev) => prev.filter((f) => f.id !== folder.id))
+            }
+          />
+        ),
+      })),
+      {
+        id: "folders-add",
+        content: <GhostAddRow label="New folder" onClick={addFolder} />,
+      },
+    ],
+  };
 }
 
-function InboxChannelsGroup() {
+function useChannelsNode(): BranchedTreeNode {
   const [channels, setChannels] = useState(INITIAL_CHANNELS_MOCK);
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("Channels");
 
   const addChannel = () => {
     const name = window.prompt("Nome do canal");
@@ -730,109 +736,122 @@ function InboxChannelsGroup() {
       ]);
   };
 
-  return (
-    <div>
-      <SectionCollapseHeader
-        title={title}
-        icon={<Columns2 size={14} className="shrink-0 text-muted-foreground" />}
-        open={open}
-        onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addChannel}
-        onRenameSection={setTitle}
-        alwaysShowChevron
-        plain
-      />
-      {open && (
-        <BranchedRows>
-          {[
-            ...channels.map((channel) => (
-              <RowWithMenu
-                key={channel.id}
-                label={channel.name}
-                content={
-                  <>
-                    <ChannelIcon channel={channel.channel} />
-                    <span className="truncate">{channel.name}</span>
-                  </>
-                }
-                onRename={() => {
-                  const name = window.prompt("Novo nome", channel.name);
-                  if (name)
-                    setChannels((prev) =>
-                      prev.map((c) => (c.id === channel.id ? { ...c, name } : c)),
-                    );
-                }}
-                onDelete={() =>
-                  setChannels((prev) => prev.filter((c) => c.id !== channel.id))
-                }
-              />
-            )),
-            <GhostAddRow key="add" label="New channel" onClick={addChannel} />,
-          ]}
-        </BranchedRows>
-      )}
-    </div>
-  );
+  return {
+    id: "channels",
+    content: (
+      <>
+        <Columns2 size={14} className="shrink-0" />
+        <span className="truncate text-sm text-muted-foreground">Channels</span>
+      </>
+    ),
+    actions: <GroupAddAction label="Adicionar canal" onClick={addChannel} />,
+    children: [
+      ...channels.map((channel) => ({
+        id: channel.id,
+        content: (
+          <RowWithMenu
+            label={channel.name}
+            content={
+              <>
+                <ChannelIcon channel={channel.channel} />
+                <span className="truncate">{channel.name}</span>
+              </>
+            }
+            onRename={() => {
+              const name = window.prompt("Novo nome", channel.name);
+              if (name)
+                setChannels((prev) =>
+                  prev.map((c) => (c.id === channel.id ? { ...c, name } : c)),
+                );
+            }}
+            onDelete={() =>
+              setChannels((prev) => prev.filter((c) => c.id !== channel.id))
+            }
+          />
+        ),
+      })),
+      {
+        id: "channels-add",
+        content: <GhostAddRow label="New channel" onClick={addChannel} />,
+      },
+    ],
+  };
 }
 
-function InboxLabelsGroup() {
+function useLabelsNode(): BranchedTreeNode {
   const [labels, setLabels] = useState(INITIAL_LABELS);
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("Labels");
 
   const addLabel = () => {
     const name = window.prompt("Nome da etiqueta");
     if (name) setLabels((prev) => [...prev, { id: crypto.randomUUID(), name }]);
   };
 
-  return (
-    <div>
-      <SectionCollapseHeader
-        title={title}
-        icon={<Tag size={14} className="shrink-0 text-muted-foreground" />}
-        open={open}
-        onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addLabel}
-        onRenameSection={setTitle}
-        alwaysShowChevron
-        plain
-      />
-      {open && (
-        <BranchedRows>
-          {[
-            ...labels.map((label) => (
-              <RowWithMenu
-                key={label.id}
-                label={label.name}
-                content={
-                  <>
-                    <Tag size={14} className="shrink-0" />
-                    <span className="truncate">{label.name}</span>
-                  </>
-                }
-                onRename={() => {
-                  const name = window.prompt("Novo nome", label.name);
-                  if (name)
-                    setLabels((prev) =>
-                      prev.map((l) => (l.id === label.id ? { ...l, name } : l)),
-                    );
-                }}
-                onDelete={() =>
-                  setLabels((prev) => prev.filter((l) => l.id !== label.id))
-                }
-              />
-            )),
-            <GhostAddRow key="add" label="New label" onClick={addLabel} />,
-          ]}
-        </BranchedRows>
-      )}
-    </div>
-  );
+  return {
+    id: "labels",
+    content: (
+      <>
+        <Tag size={14} className="shrink-0" />
+        <span className="truncate text-sm text-muted-foreground">Labels</span>
+      </>
+    ),
+    actions: <GroupAddAction label="Adicionar etiqueta" onClick={addLabel} />,
+    children: [
+      ...labels.map((label) => ({
+        id: label.id,
+        content: (
+          <RowWithMenu
+            label={label.name}
+            content={
+              <>
+                <Tag size={14} className="shrink-0" />
+                <span className="truncate">{label.name}</span>
+              </>
+            }
+            onRename={() => {
+              const name = window.prompt("Novo nome", label.name);
+              if (name)
+                setLabels((prev) =>
+                  prev.map((l) => (l.id === label.id ? { ...l, name } : l)),
+                );
+            }}
+            onDelete={() =>
+              setLabels((prev) => prev.filter((l) => l.id !== label.id))
+            }
+          />
+        ),
+      })),
+      {
+        id: "labels-add",
+        content: <GhostAddRow label="New label" onClick={addLabel} />,
+      },
+    ],
+  };
 }
 
 function ConversationsSection() {
   const [open, setOpen] = useState(true);
   const [title, setTitle] = useState("Conversations");
+  const pathname = usePathname();
+
+  const foldersNode = useFoldersNode();
+  const channelsNode = useChannelsNode();
+  const labelsNode = useLabelsNode();
+
+  const nodes: BranchedTreeNode[] = [
+    ...CONVERSATION_VIEWS.map((view) => ({
+      id: view.key,
+      active: pathname === view.href,
+      content: (
+        <InboxNavLink href={view.href}>
+          {view.icon}
+          {view.label}
+        </InboxNavLink>
+      ),
+    })),
+    foldersNode,
+    channelsNode,
+    labelsNode,
+  ];
 
   return (
     <div className="mb-4">
@@ -845,21 +864,7 @@ function ConversationsSection() {
         alwaysShowChevron
         plain
       />
-      {open && (
-        <>
-          <nav className="mb-2 flex flex-col gap-0.5">
-            {CONVERSATION_VIEWS.map((view) => (
-              <InboxNavLink key={view.key} href={view.href}>
-                {view.icon}
-                {view.label}
-              </InboxNavLink>
-            ))}
-          </nav>
-          <InboxFoldersGroup />
-          <InboxChannelsGroup />
-          <InboxLabelsGroup />
-        </>
-      )}
+      {open && <BranchedTree nodes={nodes} />}
     </div>
   );
 }
