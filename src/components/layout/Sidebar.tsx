@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, isValidElement, useRef, useState } from "react";
+import { cloneElement, isValidElement, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -57,6 +57,7 @@ import {
   Bot,
   Contact,
   Columns2,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import {
   SidebarTree,
@@ -73,6 +74,7 @@ import {
 } from "@/components/ui/SidebarFlyout";
 import { BranchedTree, type BranchedTreeNode } from "@/components/ui/BranchedTree";
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
+import { CreateEventModal, type CalendarEvent } from "@/components/calendario/CreateEventModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
 
@@ -87,7 +89,7 @@ export type SidebarContext =
   | { type: "inbox" }
   | { type: "chats" }
   | { type: "nodes" }
-  | { type: "calendario" }
+  | { type: "calendario"; clients: Client[] }
   | { type: "automacoes" }
   | { type: "atas" }
   | { type: "conexoes" };
@@ -944,6 +946,155 @@ function InboxSidebarPanel() {
   );
 }
 
+function currentTimestamp(): number {
+  return Date.now();
+}
+
+function daysFromNow(days: number, hour: number, minute = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+// ponytail: eventos mockados — trocar por dados reais quando existir integração com Google Calendar/Outlook
+const INITIAL_EVENTS: CalendarEvent[] = [
+  { id: "ev-1", title: "Reunião de alinhamento", date: daysFromNow(1, 14) },
+  { id: "ev-2", title: "Call de onboarding", date: daysFromNow(3, 10) },
+  { id: "ev-3", title: "Follow-up de proposta", date: daysFromNow(-2, 15) },
+  { id: "ev-4", title: "Reunião mensal", date: daysFromNow(-5, 9) },
+];
+
+function CalendarEventRow({
+  event,
+  onEdit,
+  onDelete,
+}: {
+  event: CalendarEvent;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const formatted = new Date(event.date).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <RowWithMenu
+      label={event.title}
+      content={
+        <>
+          <CalendarIcon size={14} className="mt-0.5 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{event.title}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {formatted}
+              {event.clientName ? ` · ${event.clientName}` : ""}
+            </span>
+          </span>
+        </>
+      }
+      onRename={onEdit}
+      onDelete={onDelete}
+    />
+  );
+}
+
+function CalendarioSidebarPanel({ clients }: { clients: Client[] }) {
+  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+  const [editing, setEditing] = useState<CalendarEvent | null | "new">(null);
+
+  const now = useMemo(() => currentTimestamp(), []);
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const upcoming = events
+    .filter((e) => new Date(e.date).getTime() >= now)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const past = events
+    .filter((e) => {
+      const t = new Date(e.date).getTime();
+      return t < now && t >= weekAgo;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  function upsert(event: CalendarEvent) {
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === event.id);
+      return exists ? prev.map((e) => (e.id === event.id ? event : e)) : [...prev, event];
+    });
+  }
+
+  function remove(id: string) {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  return (
+    <div className="group/sidebar-panel flex h-full flex-col">
+      {searchOpen ? (
+        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+      ) : (
+        <SidebarPanelHeader
+          title="Calendário"
+          onSearchOpen={() => setSearchOpen(true)}
+          onAdd={() => setEditing("new")}
+        />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <div className="mb-4">
+          <SectionLabel>Próximos eventos</SectionLabel>
+          <nav className="flex flex-col gap-0.5">
+            {upcoming.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum evento agendado.</p>
+            ) : (
+              upcoming.map((event) => (
+                <CalendarEventRow
+                  key={event.id}
+                  event={event}
+                  onEdit={() => setEditing(event)}
+                  onDelete={() => remove(event.id)}
+                />
+              ))
+            )}
+          </nav>
+        </div>
+        {past.length > 0 && (
+          <div>
+            <SectionCollapseHeader
+              title="Eventos passados"
+              open={pastOpen}
+              onToggleOpen={() => setPastOpen((v) => !v)}
+              onRenameSection={() => {}}
+            />
+            {pastOpen && (
+              <nav className="flex flex-col gap-0.5">
+                {past.map((event) => (
+                  <CalendarEventRow
+                    key={event.id}
+                    event={event}
+                    onEdit={() => setEditing(event)}
+                    onDelete={() => remove(event.id)}
+                  />
+                ))}
+              </nav>
+            )}
+          </div>
+        )}
+      </div>
+      {editing !== null && (
+        <CreateEventModal
+          clients={clients}
+          event={editing === "new" ? null : editing}
+          onClose={() => setEditing(null)}
+          onSave={upsert}
+        />
+      )}
+    </div>
+  );
+}
+
 function SpacesMenu({
   position,
   onClose,
@@ -1708,6 +1859,9 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
   }
   if (context.type === "inbox") {
     return <InboxSidebarPanel />;
+  }
+  if (context.type === "calendario") {
+    return <CalendarioSidebarPanel clients={context.clients} />;
   }
   return null;
 }

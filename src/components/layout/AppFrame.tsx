@@ -8,7 +8,7 @@ const HAS_PANEL: Record<SidebarContext["type"], boolean> = {
   inbox: true,
   chats: false,
   nodes: false,
-  calendario: false,
+  calendario: true,
   automacoes: false,
   atas: false,
   conexoes: false,
