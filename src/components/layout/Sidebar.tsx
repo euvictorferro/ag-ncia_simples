@@ -92,6 +92,7 @@ import {
 } from "@/components/atas/CreateDocumentModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateClient, deleteClient, type Client } from "@/lib/clients";
+import type { AgencyMember } from "@/lib/tasks";
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks" | "pessoal";
 export type ClientTab =
@@ -99,7 +100,7 @@ export type ClientTab =
 
 export type SidebarContext =
   | { type: "home"; active: HomeTab }
-  | { type: "clients"; agencyId: string; initialClients: Client[] }
+  | { type: "clients"; agencyId: string; members: AgencyMember[]; initialClients: Client[] }
   | { type: "client"; clientId: string; clientName: string; active: ClientTab }
   | { type: "inbox" }
   | { type: "chats" }

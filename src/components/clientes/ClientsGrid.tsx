@@ -2,10 +2,19 @@
 
 import { useState } from "react";
 import type { Client } from "@/lib/clients";
+import type { AgencyMember } from "@/lib/tasks";
 import { ClientCard } from "@/components/clientes/ClientCard";
 import { ClientFormModal } from "@/components/clientes/ClientFormModal";
 
-export function ClientsGrid({ agencyId, initialClients }: { agencyId: string; initialClients: Client[] }) {
+export function ClientsGrid({
+  agencyId,
+  members,
+  initialClients,
+}: {
+  agencyId: string;
+  members: AgencyMember[];
+  initialClients: Client[];
+}) {
   const [clients, setClients] = useState(initialClients);
   const [editing, setEditing] = useState<Client | null | "new">(null);
 
@@ -46,6 +55,7 @@ export function ClientsGrid({ agencyId, initialClients }: { agencyId: string; in
       {editing !== null && (
         <ClientFormModal
           agencyId={agencyId}
+          members={members}
           client={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
           onSaved={upsert}
