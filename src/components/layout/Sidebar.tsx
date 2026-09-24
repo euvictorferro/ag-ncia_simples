@@ -66,6 +66,8 @@ import {
   Columns2,
   Calendar as CalendarIcon,
   Zap,
+  KanbanSquare,
+  CircleDot,
 } from "lucide-react";
 import {
   SidebarTree,
@@ -847,11 +849,74 @@ function useLabelsNode(): BranchedTreeNode {
   };
 }
 
+type PipelineStage = { id: string; name: string };
+
+// ponytail: etapas mockadas — trocar por pipeline configurável de verdade quando o kanban existir
+const INITIAL_PIPELINE_STAGES: PipelineStage[] = [
+  { id: "stage-1", name: "Lead novo" },
+  { id: "stage-2", name: "Em atendimento/Follow-up" },
+  { id: "stage-3", name: "Qualificado" },
+  { id: "stage-4", name: "Reunião marcada" },
+  { id: "stage-5", name: "Ganho" },
+  { id: "stage-6", name: "Perdido" },
+];
+
+function usePipelinesNode(): BranchedTreeNode {
+  const [stages, setStages] = useState(INITIAL_PIPELINE_STAGES);
+
+  const addStage = () => {
+    const name = window.prompt("Nome da etapa");
+    if (name) setStages((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+  };
+
+  return {
+    id: "pipelines",
+    content: (
+      <>
+        <KanbanSquare size={14} className="shrink-0" />
+        <span className="min-w-0 truncate text-sm text-muted-foreground">Pipelines</span>
+      </>
+    ),
+    actions: <GroupAddAction label="Adicionar etapa" onClick={addStage} />,
+    children: [
+      ...stages.map((stage) => ({
+        id: stage.id,
+        content: (
+          <RowWithMenu
+            label={stage.name}
+            content={
+              <>
+                <CircleDot size={14} className="shrink-0" />
+                <span className="truncate">{stage.name}</span>
+              </>
+            }
+            onRename={() => {
+              const name = window.prompt("Novo nome", stage.name);
+              if (name)
+                setStages((prev) =>
+                  prev.map((s) => (s.id === stage.id ? { ...s, name } : s)),
+                );
+            }}
+            onDelete={() =>
+              setStages((prev) => prev.filter((s) => s.id !== stage.id))
+            }
+          />
+        ),
+      })),
+      {
+        id: "pipelines-add",
+        content: <GhostAddRow label="New stage" onClick={addStage} />,
+      },
+    ],
+  };
+}
+
 function ConversationsSection() {
   const [open, setOpen] = useState(true);
   const [title, setTitle] = useState("Conversations");
   const pathname = usePathname();
 
+  const pipelinesNode = usePipelinesNode();
   const foldersNode = useFoldersNode();
   const channelsNode = useChannelsNode();
   const labelsNode = useLabelsNode();
@@ -867,6 +932,7 @@ function ConversationsSection() {
         </InboxNavLink>
       ),
     })),
+    pipelinesNode,
     foldersNode,
     channelsNode,
     labelsNode,
