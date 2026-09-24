@@ -1191,9 +1191,10 @@ function ClientsSidebarPanel({
   function upsert(client: Client) {
     setClients((prev) => {
       const exists = prev.some((c) => c.id === client.id);
-      return exists
+      const next = exists
         ? prev.map((c) => (c.id === client.id ? client : c))
-        : [...prev, client].sort((a, b) => a.name.localeCompare(b.name));
+        : [...prev, client];
+      return next.sort((a, b) => a.name.localeCompare(b.name));
     });
   }
 
@@ -1209,7 +1210,7 @@ function ClientsSidebarPanel({
   }
 
   async function handleDelete(client: Client) {
-    if (!window.confirm(`Excluir "${client.name}"? Essa ação não pode ser desfeita.`)) return;
+    if (!window.confirm(`Excluir "${client.name}"? Todas as tarefas desse cliente também serão excluídas. Essa ação não pode ser desfeita.`)) return;
     setBusyId(client.id);
     try {
       const supabase = createBrowserSupabaseClient();
