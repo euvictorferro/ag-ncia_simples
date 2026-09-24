@@ -19,6 +19,13 @@ import {
   InstagramIcon,
   AppleIcon,
   Mail01Icon,
+  LinkedinIcon,
+  TiktokIcon,
+  SlackIcon,
+  TrelloIcon,
+  NotionIcon,
+  ChatGptIcon,
+  ClaudeIcon,
 } from "@hugeicons/core-free-icons";
 import {
   MessagesSquare,
@@ -99,8 +106,7 @@ export type SidebarContext =
   | { type: "nodes" }
   | { type: "calendario"; clients: Client[] }
   | { type: "automacoes" }
-  | { type: "atas"; clients: Client[] }
-  | { type: "conexoes" };
+  | { type: "atas"; clients: Client[] };
 
 function navClass(isActive: boolean): string {
   return `flex items-center gap-2 truncate rounded-md px-3 py-2 text-sm transition-colors ${
@@ -1687,45 +1693,64 @@ function PreviewList({ items }: { items: { label: string; href: string }[] }) {
 
 function RailIcon({
   href,
+  onClick,
   label,
   active,
   preview,
   tooltip,
   children,
 }: {
-  href: string;
+  href?: string;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   label: string;
   active: boolean;
   preview?: React.ReactNode;
   tooltip?: string;
   children: React.ReactNode;
 }) {
+  const glow = (
+    <>
+      <span
+        aria-hidden="true"
+        className={`absolute inset-0 scale-[0.85] rounded-full blur-md transition-opacity duration-200 ${
+          active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
+        style={{ backgroundImage: active ? ACTIVE_GLOW : HOVER_GLOW }}
+      />
+      <span
+        className={`relative z-10 flex items-center justify-center transition-colors ${
+          active
+            ? "text-white"
+            : "text-muted-foreground group-hover:text-foreground-strong"
+        }`}
+      >
+        {active && isValidElement<{ strokeWidth?: number }>(children)
+          ? cloneElement(children, { strokeWidth: 2.5 })
+          : children}
+      </span>
+    </>
+  );
+
   return (
     <div className="group/rail relative flex h-9 w-9 items-center justify-center">
-      <Link
-        href={href}
-        aria-label={label}
-        className="group relative flex h-9 w-9 items-center justify-center"
-      >
-        <span
-          aria-hidden="true"
-          className={`absolute inset-0 scale-[0.85] rounded-full blur-md transition-opacity duration-200 ${
-            active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
-          style={{ backgroundImage: active ? ACTIVE_GLOW : HOVER_GLOW }}
-        />
-        <span
-          className={`relative z-10 flex items-center justify-center transition-colors ${
-            active
-              ? "text-white"
-              : "text-muted-foreground group-hover:text-foreground-strong"
-          }`}
+      {href ? (
+        <Link
+          href={href}
+          aria-label={label}
+          className="group relative flex h-9 w-9 items-center justify-center"
         >
-          {active && isValidElement<{ strokeWidth?: number }>(children)
-            ? cloneElement(children, { strokeWidth: 2.5 })
-            : children}
-        </span>
-      </Link>
+          {glow}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          className="group relative flex h-9 w-9 items-center justify-center"
+        >
+          {glow}
+        </button>
+      )}
       {preview && !active && (
         <div className="pointer-events-none absolute left-full top-0 z-20 ml-3 w-56 origin-left scale-95 rounded-xl border border-border bg-background-elevated p-3 opacity-0 shadow-xl transition-all duration-150 group-hover/rail:pointer-events-auto group-hover/rail:scale-100 group-hover/rail:opacity-100">
           <span
@@ -1796,6 +1821,105 @@ function RailAction({
     >
       {content}
     </Link>
+  );
+}
+
+type ConnectionApp = { id: string; label: string; icon: IconSvgElement | typeof LayoutGrid };
+
+const CONNECTION_CATEGORIES: { title: string; apps: ConnectionApp[] }[] = [
+  {
+    title: "Mensagens",
+    apps: [
+      { id: "whatsapp", label: "WhatsApp", icon: WhatsappIcon },
+      { id: "instagram", label: "Instagram", icon: InstagramIcon },
+      { id: "linkedin", label: "LinkedIn", icon: LinkedinIcon },
+      { id: "tiktok", label: "TikTok", icon: TiktokIcon },
+    ],
+  },
+  {
+    title: "Plataformas de trabalho",
+    apps: [
+      { id: "slack", label: "Slack", icon: SlackIcon },
+      { id: "clickup", label: "ClickUp", icon: LayoutGrid },
+      { id: "trello", label: "Trello", icon: TrelloIcon },
+      { id: "monday", label: "Monday", icon: LayoutGrid },
+      { id: "notion", label: "Notion", icon: NotionIcon },
+    ],
+  },
+  {
+    title: "IA",
+    apps: [
+      { id: "chatgpt", label: "ChatGPT", icon: ChatGptIcon },
+      { id: "claude", label: "Claude", icon: ClaudeIcon },
+    ],
+  },
+];
+
+function isIconSvgElement(icon: IconSvgElement | typeof LayoutGrid): icon is IconSvgElement {
+  return Array.isArray(icon);
+}
+
+function ConnectionAppIcon({ icon }: { icon: ConnectionApp["icon"] }) {
+  return isIconSvgElement(icon) ? (
+    <HugeiconsIcon icon={icon} size={20} />
+  ) : (
+    <LayoutGrid size={20} />
+  );
+}
+
+function ConnectionsGrid({ onSelect }: { onSelect: (app: ConnectionApp) => void }) {
+  return (
+    <div className="max-h-[70vh] overflow-y-auto p-2">
+      {CONNECTION_CATEGORIES.map((category) => (
+        <div key={category.title} className="mb-3 last:mb-0">
+          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {category.title}
+          </p>
+          <div className="grid grid-cols-3 gap-1">
+            {category.apps.map((app) => (
+              <button
+                key={app.id}
+                type="button"
+                onClick={() => onSelect(app)}
+                className="flex flex-col items-center gap-1.5 rounded-lg p-2 text-center transition-colors hover:bg-muted"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground-strong">
+                  <ConnectionAppIcon icon={app.icon} />
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{app.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ConnectAppModal({ app, onClose }: { app: ConnectionApp; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 px-4">
+      <div className="w-full max-w-sm space-y-4 rounded-[var(--radius-card)] border border-border bg-background-elevated p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground-strong">
+            <ConnectionAppIcon icon={app.icon} />
+          </span>
+          <h2 className="text-sm font-semibold text-foreground-strong">Conectar {app.label}</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          A integração com {app.label} chega em breve.
+        </p>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-button px-3 py-2 text-sm font-medium text-button-foreground"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2155,6 +2279,8 @@ export function Sidebar({
 }) {
   const isClientsSection =
     context.type === "clients" || context.type === "client";
+  const connectionsMenu = useFlyout();
+  const [connectingApp, setConnectingApp] = useState<ConnectionApp | null>(null);
 
   return (
     <aside className="flex w-14 shrink-0 flex-col items-center gap-2 self-stretch rounded-xl border border-border bg-background-elevated py-5">
@@ -2229,13 +2355,26 @@ export function Sidebar({
         <FileText size={18} />
       </RailIcon>
       <RailIcon
-        href="/conexoes"
         label="Hub de conexões"
-        active={context.type === "conexoes"}
+        active={!!connectionsMenu.position}
+        onClick={connectionsMenu.toggleAt}
         tooltip="Conecte seus outros apps"
       >
         <HugeiconsIcon icon={GripIcon} size={18} />
       </RailIcon>
+      {connectionsMenu.position && (
+        <FlyoutPanel position={connectionsMenu.position} onClose={connectionsMenu.close} width={280}>
+          <ConnectionsGrid
+            onSelect={(app) => {
+              setConnectingApp(app);
+              connectionsMenu.close();
+            }}
+          />
+        </FlyoutPanel>
+      )}
+      {connectingApp && (
+        <ConnectAppModal app={connectingApp} onClose={() => setConnectingApp(null)} />
+      )}
       <div className="mt-auto flex flex-col items-center gap-2">
         {/* ponytail: sem ação ainda, adicionar modal/rota quando essas features existirem */}
         <RailAction label="Convidar colaboradores">

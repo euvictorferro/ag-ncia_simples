@@ -11,7 +11,6 @@ const HAS_PANEL: Record<SidebarContext["type"], boolean> = {
   calendario: true,
   automacoes: true,
   atas: true,
-  conexoes: false,
 };
 
 export function AppFrame({
