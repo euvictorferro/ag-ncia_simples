@@ -972,9 +972,11 @@ function RailAction({
 function SidebarPanelHeader({
   title,
   onSearchOpen,
+  onAdd,
 }: {
   title: string;
   onSearchOpen: () => void;
+  onAdd?: () => void;
 }) {
   return (
     <div className="flex h-11 shrink-0 items-center justify-between gap-1 px-3">
@@ -1012,6 +1014,7 @@ function SidebarPanelHeader({
         <button
           type="button"
           aria-label="Adicionar"
+          onClick={onAdd}
           className="flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-1 text-foreground-strong transition-colors hover:bg-border"
         >
           <Plus size={14} />
