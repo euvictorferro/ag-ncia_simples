@@ -2157,7 +2157,7 @@ function groupLabel(groupBy: GroupBy, key: string, members: AgencyMember[]): str
   if (groupBy === "assigned_to") {
     if (key === "") return "Sem responsável";
     const member = members.find((m) => m.id === key);
-    return member ? member.user_id.slice(0, 8) : "Sem responsável";
+    return member ? member.user_id.slice(0, 8) : "Responsável removido";
   }
   if (groupBy === "niche") {
     return key === "" ? "Sem nicho" : key;
