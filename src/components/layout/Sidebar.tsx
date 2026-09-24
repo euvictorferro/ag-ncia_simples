@@ -56,6 +56,7 @@ import {
   Tag,
   Bot,
   Contact,
+  Columns2,
 } from "lucide-react";
 import {
   SidebarTree,
@@ -201,6 +202,8 @@ function SectionCollapseHeader({
   onAdd,
   onRenameSection,
   subsection,
+  alwaysShowChevron,
+  plain,
 }: {
   title: string;
   icon?: React.ReactNode;
@@ -209,6 +212,8 @@ function SectionCollapseHeader({
   onAdd?: () => void;
   onRenameSection: (title: string) => void;
   subsection?: boolean;
+  alwaysShowChevron?: boolean;
+  plain?: boolean;
 }) {
   const menu = useFlyout();
 
@@ -222,15 +227,21 @@ function SectionCollapseHeader({
       >
         {icon}
         <span
-          className={`truncate font-semibold uppercase tracking-wide text-muted-foreground ${
-            subsection ? "text-[10px]" : "text-xs"
-          }`}
+          className={
+            plain
+              ? "truncate text-sm text-muted-foreground"
+              : `truncate font-semibold uppercase tracking-wide text-muted-foreground ${
+                  subsection ? "text-[10px]" : "text-xs"
+                }`
+          }
         >
           {title}
         </span>
         <ChevronDown
           size={12}
-          className={`hidden shrink-0 text-muted-foreground transition-transform group-hover/section-header:inline-block ${open ? "" : "-rotate-90"}`}
+          className={`shrink-0 text-muted-foreground transition-transform ${
+            alwaysShowChevron ? "inline-block" : "hidden group-hover/section-header:inline-block"
+          } ${alwaysShowChevron ? (open ? "rotate-180" : "") : open ? "" : "-rotate-90"}`}
         />
       </button>
       <div className="hidden shrink-0 items-center gap-0.5 group-hover/section-header:flex">
@@ -664,11 +675,13 @@ function InboxFoldersGroup() {
     <div>
       <SectionCollapseHeader
         title={title}
+        icon={<Folder size={14} className="shrink-0 text-muted-foreground" />}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
         onAdd={addFolder}
         onRenameSection={setTitle}
-        subsection
+        alwaysShowChevron
+        plain
       />
       {open && (
         <BranchedRows>
@@ -721,11 +734,13 @@ function InboxChannelsGroup() {
     <div>
       <SectionCollapseHeader
         title={title}
+        icon={<Columns2 size={14} className="shrink-0 text-muted-foreground" />}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
         onAdd={addChannel}
         onRenameSection={setTitle}
-        subsection
+        alwaysShowChevron
+        plain
       />
       {open && (
         <BranchedRows>
@@ -774,11 +789,13 @@ function InboxLabelsGroup() {
     <div>
       <SectionCollapseHeader
         title={title}
+        icon={<Tag size={14} className="shrink-0 text-muted-foreground" />}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
         onAdd={addLabel}
         onRenameSection={setTitle}
-        subsection
+        alwaysShowChevron
+        plain
       />
       {open && (
         <BranchedRows>
@@ -825,6 +842,8 @@ function ConversationsSection() {
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
         onRenameSection={setTitle}
+        alwaysShowChevron
+        plain
       />
       {open && (
         <>
