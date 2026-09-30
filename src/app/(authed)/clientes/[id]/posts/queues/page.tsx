@@ -2,10 +2,10 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAgencyMembership } from "@/lib/agency";
 import { listClients } from "@/lib/clients";
 import { AppFrame } from "@/components/layout/AppFrame";
-import { PlaceholderSection } from "@/components/shared/PlaceholderSection";
+import { QueuesTable } from "@/components/clientes/QueuesTable";
 import Link from "next/link";
 
-export default async function ClientDashboardPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientPostsQueuesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
@@ -28,8 +28,8 @@ export default async function ClientDashboardPage({ params }: { params: Promise<
   }
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "dashboard" }} agencyName={agencyName}>
-      <PlaceholderSection title={`${client.name} — Dashboard`} />
+    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "posts-queues" }} agencyName={agencyName}>
+      <QueuesTable clientId={client.id} />
     </AppFrame>
   );
 }

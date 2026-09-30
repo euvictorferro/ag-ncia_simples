@@ -2,10 +2,10 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAgencyMembership } from "@/lib/agency";
 import { listClients } from "@/lib/clients";
 import { AppFrame } from "@/components/layout/AppFrame";
-import { PlaceholderSection } from "@/components/shared/PlaceholderSection";
+import { ClientAnalytics } from "@/components/clientes/ClientAnalytics";
 import Link from "next/link";
 
-export default async function ClientAnunciosPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
@@ -28,8 +28,8 @@ export default async function ClientAnunciosPage({ params }: { params: Promise<{
   }
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "anuncios" }} agencyName={agencyName}>
-      <PlaceholderSection title={`${client.name} — Anúncios`} />
+    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "analytics" }} agencyName={agencyName}>
+      <ClientAnalytics clientId={client.id} />
     </AppFrame>
   );
 }

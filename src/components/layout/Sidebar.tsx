@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, isValidElement, useMemo, useRef, useState } from "react";
+import { cloneElement, createContext, isValidElement, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -68,10 +68,13 @@ import {
   Zap,
   KanbanSquare,
   CircleDot,
+  ListChecks,
+  Star,
 } from "lucide-react";
 import {
   SidebarTree,
   type SidebarTreeNode,
+  type SidebarTreeNodeKind,
   type SidebarTreeHandle,
 } from "@/components/ui/SidebarTree";
 import { CreateSpaceModal } from "@/components/ui/CreateSpaceModal";
@@ -93,6 +96,7 @@ import {
   type DocumentStatus,
 } from "@/components/atas/CreateDocumentModal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { useSpaceBoard } from "@/components/spaces/SpaceBoardContext";
 import {
   updateClient,
   deleteClient,
@@ -101,10 +105,63 @@ import {
   type ClientHealth,
 } from "@/lib/clients";
 import type { AgencyMember } from "@/lib/tasks";
+import { useSidebarPreviewData } from "@/components/layout/SidebarPreviewData";
+import { INITIAL_CHANNELS, INITIAL_DMS, INITIAL_AI_CHATS } from "@/lib/mockChats";
+import { useChatThread, type ChatThreadRef } from "@/components/chats/ChatThreadContext";
+import { CreateNamedModal } from "@/components/ui/CreateNamedModal";
+import { CreateChannelModal } from "@/components/chats/CreateChannelModal";
+import { NewDirectMessageModal } from "@/components/chats/NewDirectMessageModal";
+
+// ponytail: pub-sub minúsculo só pro botão "+" do topo da Home disparar a criação certa em
+// SpacesBlock/ChannelsSection/ChatsSection sem precisar subir o estado delas — cada seção escuta
+// o alvo pendente, abre seu próprio modal e limpa. Sem fila: um alvo por vez é o bastante aqui.
+type HomeNewTarget = "space" | "channel" | "dm" | "ai";
+const HomeNewActionContext = createContext<{
+  pending: HomeNewTarget | null;
+  request: (target: HomeNewTarget) => void;
+  clear: () => void;
+} | null>(null);
+
+function useHomeNewAction(target: HomeNewTarget, onTrigger: () => void) {
+  const ctx = useContext(HomeNewActionContext);
+  useEffect(() => {
+    if (ctx?.pending === target) {
+      onTrigger();
+      ctx.clear();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx?.pending]);
+}
+
+// ponytail: ponte mínima entre o SidebarTree (dono dos nós/favoritos de Spaces) e a seção
+// "Favorites" (renderizada em outro lugar da árvore de componentes) — guarda só a lista achatada
+// de nós favoritados + uma função pra desfavoritar delegada de volta pro SidebarTree via ref.
+const TreeFavoritesContext = createContext<{
+  entries: SidebarTreeNode[];
+  setEntries: (nodes: SidebarTreeNode[]) => void;
+  unfavorite: (id: string) => void;
+  setUnfavorite: (fn: (id: string) => void) => void;
+  openNode: (id: string) => void;
+  setOpenNode: (fn: (id: string) => void) => void;
+} | null>(null);
+
+function flattenFavorites(nodes: SidebarTreeNode[]): SidebarTreeNode[] {
+  const result: SidebarTreeNode[] = [];
+  for (const node of nodes) {
+    if (node.favorite) result.push(node);
+    if (node.children) result.push(...flattenFavorites(node.children));
+  }
+  return result;
+}
 
 export type HomeTab = "dashboard" | "financeiro" | "tasks" | "pessoal";
 export type ClientTab =
-  "dashboard" | "anuncios" | "organico" | "financeiro" | "tasks" | "conteudos";
+  | "analytics"
+  | "posts-overview"
+  | "posts-queues"
+  | "ads"
+  | "tasks"
+  | "workflow";
 
 export type SidebarContext =
   | { type: "home"; active: HomeTab }
@@ -152,7 +209,7 @@ const SPACES_TREE: SidebarTreeNode[] = [
     id: "mkt",
     label: "Marketing",
     kind: "space",
-    icon: { type: "emoji", value: "📣" },
+    icon: { type: "icon", value: "megaphone" },
     children: [
       {
         id: "mkt-conteudo",
@@ -319,21 +376,30 @@ function RowWithMenu({
   content,
   label,
   extra,
+  active,
+  onClick,
   onRename,
   onDelete,
 }: {
   content: React.ReactNode;
   label: string;
   extra?: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
   onRename: () => void;
   onDelete: () => void;
 }) {
   const menu = useFlyout();
 
   return (
-    <div className="group/row relative flex items-center gap-1 rounded-md pr-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+    <div
+      className={`group/row relative flex items-center gap-1 rounded-md pr-1 text-sm transition-colors hover:bg-muted hover:text-foreground ${
+        active ? "bg-muted text-foreground-strong" : "text-muted-foreground"
+      }`}
+    >
       <button
         type="button"
+        onClick={onClick}
         className="flex h-full min-w-0 flex-1 items-center gap-2 truncate px-3 py-2 text-left"
       >
         {content}
@@ -390,23 +456,13 @@ function RowWithMenu({
   );
 }
 
-type Channel = { id: string; name: string; private?: boolean };
-
-// ponytail: canais/mensagens/AI chats mockados — trocar por dados reais quando existir backend de chat
-const INITIAL_CHANNELS: Channel[] = [
-  { id: "ch-1", name: "[Equipe] - Clique Boost", private: true },
-];
-
 function ChannelsSection() {
   const [channels, setChannels] = useState(INITIAL_CHANNELS);
   const [open, setOpen] = useState(true);
   const [title, setTitle] = useState("Channels");
-
-  const addChannel = () => {
-    const name = window.prompt("Nome do canal");
-    if (name)
-      setChannels((prev) => [...prev, { id: crypto.randomUUID(), name }]);
-  };
+  const [creating, setCreating] = useState(false);
+  const { openThread, allChannelsOpen, open: openChatThread, openAllChannels } = useChatThread();
+  useHomeNewAction("channel", () => setCreating(true));
 
   return (
     <div className="mb-4">
@@ -414,15 +470,15 @@ function ChannelsSection() {
         title={title}
         open={open}
         onToggleOpen={() => setOpen((v) => !v)}
-        onAdd={addChannel}
+        onAdd={() => setCreating(true)}
         onRenameSection={setTitle}
       />
       {open && (
         <nav className="flex flex-col gap-0.5">
-          <Link href="/chats" className={navClass(false)}>
+          <button type="button" onClick={openAllChannels} className={`${navClass(allChannelsOpen)} w-full text-left`}>
             <Layers size={14} className="shrink-0" />
             All Channels
-          </Link>
+          </button>
           {channels.map((channel) => (
             <RowWithMenu
               key={channel.id}
@@ -441,6 +497,8 @@ function ChannelsSection() {
                   />
                 ) : undefined
               }
+              active={openThread?.type === "channel" && openThread.id === channel.id}
+              onClick={() => openChatThread({ type: "channel", id: channel.id, name: channel.name })}
               onRename={() => {
                 const name = window.prompt("Novo nome do canal", channel.name);
                 if (name)
@@ -453,32 +511,20 @@ function ChannelsSection() {
               }
             />
           ))}
-          <GhostAddRow label="Add Channel" onClick={addChannel} />
+          <GhostAddRow label="Add Channel" onClick={() => setCreating(true)} />
         </nav>
       )}
+      <CreateChannelModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreate={({ name, isPrivate }) => {
+          setChannels((prev) => [...prev, { id: crypto.randomUUID(), name, private: isPrivate }]);
+          setCreating(false);
+        }}
+      />
     </div>
   );
 }
-
-type DirectMessage = {
-  id: string;
-  name: string;
-  you?: boolean;
-  online?: boolean;
-};
-type AiChat = { id: string; title: string };
-
-const INITIAL_DMS: DirectMessage[] = [
-  { id: "dm-1", name: "Vicenzo Valentino" },
-  { id: "dm-2", name: "Leonardo Gualbino", online: true },
-  { id: "dm-3", name: "Clique Boost" },
-  { id: "dm-4", name: "Victor Ferro", you: true, online: true },
-];
-
-const INITIAL_AI_CHATS: AiChat[] = [
-  { id: "ai-1", title: "Create Brand Voice Skill" },
-  { id: "ai-2", title: "Untitled" },
-];
 
 function ChatsSection() {
   const [dms, setDms] = useState(INITIAL_DMS);
@@ -489,16 +535,18 @@ function ChatsSection() {
   const [chatsTitle, setChatsTitle] = useState("Chats");
   const [dmsTitle, setDmsTitle] = useState("Direct Messages");
   const [aiTitle, setAiTitle] = useState("AI Chats");
+  const [creatingDm, setCreatingDm] = useState(false);
+  const { openThread, open: openChatThread } = useChatThread();
 
-  const addDm = () => {
-    const name = window.prompt("Nome do contato");
-    if (name) setDms((prev) => [...prev, { id: crypto.randomUUID(), name }]);
-  };
+  // ponytail: "New AI chat" abre direto (sem modal de nome) — o título nasce vazio e o
+  // usuário renomeia pelo próprio header do chat, igual ao resto dos AI sheets.
   const addAiChat = () => {
-    const title = window.prompt("Título do novo chat");
-    if (title)
-      setAiChats((prev) => [...prev, { id: crypto.randomUUID(), title }]);
+    const chat = { id: crypto.randomUUID(), title: "Untitled" };
+    setAiChats((prev) => [...prev, chat]);
+    openChatThread({ type: "ai", id: chat.id, name: chat.title });
   };
+  useHomeNewAction("dm", () => setCreatingDm(true));
+  useHomeNewAction("ai", addAiChat);
 
   return (
     <div className="mb-4">
@@ -514,7 +562,7 @@ function ChatsSection() {
             title={dmsTitle}
             open={dmsOpen}
             onToggleOpen={() => setDmsOpen((v) => !v)}
-            onAdd={addDm}
+            onAdd={() => setCreatingDm(true)}
             onRenameSection={setDmsTitle}
             subsection
           />
@@ -535,6 +583,8 @@ function ChatsSection() {
                       </span>
                     </>
                   }
+                  active={openThread?.type === "dm" && openThread.id === dm.id}
+                  onClick={() => openChatThread({ type: "dm", id: dm.id, name: dm.name })}
                   onRename={() => {
                     const name = window.prompt("Novo nome", dm.name);
                     if (name)
@@ -547,9 +597,20 @@ function ChatsSection() {
                   }
                 />
               ))}
-              <GhostAddRow label="New message" onClick={addDm} />
+              <GhostAddRow label="New message" onClick={() => setCreatingDm(true)} />
             </nav>
           )}
+          <NewDirectMessageModal
+            open={creatingDm}
+            onClose={() => setCreatingDm(false)}
+            onSelect={(name) => {
+              const existing = dms.find((d) => d.name === name);
+              const dm = existing ?? { id: crypto.randomUUID(), name };
+              if (!existing) setDms((prev) => [...prev, dm]);
+              setCreatingDm(false);
+              openChatThread({ type: "dm", id: dm.id, name: dm.name });
+            }}
+          />
         </div>
 
         <div>
@@ -572,6 +633,8 @@ function ChatsSection() {
                       <span className="truncate">{chat.title}</span>
                     </>
                   }
+                  active={openThread?.type === "ai" && openThread.id === chat.id}
+                  onClick={() => openChatThread({ type: "ai", id: chat.id, name: chat.title })}
                   onRename={() => {
                     const title = window.prompt("Novo título", chat.title);
                     if (title)
@@ -611,6 +674,99 @@ function ChannelIcon({ channel }: { channel: InboxChannel }) {
       size={14}
       className="shrink-0 text-muted-foreground"
     />
+  );
+}
+
+const CHANNEL_TYPE_LABEL: Record<InboxChannel, string> = {
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  email: "E-mail",
+  apple: "Apple Messages",
+};
+
+function CreateInboxChannelModal({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (data: { name: string; channel: InboxChannel }) => void;
+}) {
+  const [name, setName] = useState("");
+  const [channel, setChannel] = useState<InboxChannel>("whatsapp");
+
+  if (!open) return null;
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    onCreate({ name: name.trim(), channel });
+    setName("");
+    setChannel("whatsapp");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <button type="button" aria-label="Fechar" className="absolute inset-0 cursor-default" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-background-elevated p-6 shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <X size={16} />
+        </button>
+
+        <h2 className="text-lg font-semibold text-foreground-strong">Novo canal</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Conecta um canal de atendimento pra receber conversas aqui.</p>
+
+        <div className="mt-5 space-y-1">
+          <label className="text-xs text-muted-foreground">Nome</label>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            placeholder="e.g. WhatsApp Vendas"
+            className="h-12 w-full rounded-lg border border-foreground-strong/30 bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+
+        <div className="mt-4 space-y-1">
+          <label className="text-xs text-muted-foreground">Tipo</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(CHANNEL_TYPE_LABEL) as InboxChannel[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setChannel(key)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  channel === key ? "border-foreground-strong text-foreground-strong" : "border-border text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <ChannelIcon channel={key} />
+                {CHANNEL_TYPE_LABEL[key]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!name.trim()}
+            className="rounded-lg bg-button px-4 py-2 text-sm font-medium text-button-foreground disabled:opacity-50"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -695,15 +851,11 @@ function GroupAddAction({ label, onClick }: { label: string; onClick: () => void
   );
 }
 
-function useFoldersNode(): BranchedTreeNode {
+function useFoldersNode(): { node: BranchedTreeNode; modal: React.ReactNode } {
   const [folders, setFolders] = useState(INITIAL_FOLDERS);
+  const [creating, setCreating] = useState(false);
 
-  const addFolder = () => {
-    const name = window.prompt("Nome da pasta");
-    if (name) setFolders((prev) => [...prev, { id: crypto.randomUUID(), name }]);
-  };
-
-  return {
+  const node: BranchedTreeNode = {
     id: "folders",
     content: (
       <>
@@ -711,7 +863,7 @@ function useFoldersNode(): BranchedTreeNode {
         <span className="min-w-0 truncate text-sm text-muted-foreground">Folders</span>
       </>
     ),
-    actions: <GroupAddAction label="Adicionar pasta" onClick={addFolder} />,
+    actions: <GroupAddAction label="Adicionar pasta" onClick={() => setCreating(true)} />,
     children: [
       ...folders.map((folder) => ({
         id: folder.id,
@@ -739,25 +891,33 @@ function useFoldersNode(): BranchedTreeNode {
       })),
       {
         id: "folders-add",
-        content: <GhostAddRow label="New folder" onClick={addFolder} />,
+        content: <GhostAddRow label="New folder" onClick={() => setCreating(true)} />,
       },
     ],
   };
+
+  const modal = (
+    <CreateNamedModal
+      open={creating}
+      title="Nova pasta"
+      description="Agrupa conversas relacionadas dentro do Inbox."
+      placeholder="e.g. Leads quentes"
+      onClose={() => setCreating(false)}
+      onCreate={({ name }) => {
+        setFolders((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+        setCreating(false);
+      }}
+    />
+  );
+
+  return { node, modal };
 }
 
-function useChannelsNode(): BranchedTreeNode {
+function useChannelsNode(): { node: BranchedTreeNode; modal: React.ReactNode } {
   const [channels, setChannels] = useState(INITIAL_CHANNELS_MOCK);
+  const [creating, setCreating] = useState(false);
 
-  const addChannel = () => {
-    const name = window.prompt("Nome do canal");
-    if (name)
-      setChannels((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), name, channel: "whatsapp" },
-      ]);
-  };
-
-  return {
+  const node: BranchedTreeNode = {
     id: "channels",
     content: (
       <>
@@ -765,7 +925,7 @@ function useChannelsNode(): BranchedTreeNode {
         <span className="min-w-0 truncate text-sm text-muted-foreground">Channels</span>
       </>
     ),
-    actions: <GroupAddAction label="Adicionar canal" onClick={addChannel} />,
+    actions: <GroupAddAction label="Adicionar canal" onClick={() => setCreating(true)} />,
     children: [
       ...channels.map((channel) => ({
         id: channel.id,
@@ -793,21 +953,30 @@ function useChannelsNode(): BranchedTreeNode {
       })),
       {
         id: "channels-add",
-        content: <GhostAddRow label="New channel" onClick={addChannel} />,
+        content: <GhostAddRow label="New channel" onClick={() => setCreating(true)} />,
       },
     ],
   };
+
+  const modal = (
+    <CreateInboxChannelModal
+      open={creating}
+      onClose={() => setCreating(false)}
+      onCreate={({ name, channel }) => {
+        setChannels((prev) => [...prev, { id: crypto.randomUUID(), name, channel }]);
+        setCreating(false);
+      }}
+    />
+  );
+
+  return { node, modal };
 }
 
-function useLabelsNode(): BranchedTreeNode {
+function useLabelsNode(): { node: BranchedTreeNode; modal: React.ReactNode } {
   const [labels, setLabels] = useState(INITIAL_LABELS);
+  const [creating, setCreating] = useState(false);
 
-  const addLabel = () => {
-    const name = window.prompt("Nome da etiqueta");
-    if (name) setLabels((prev) => [...prev, { id: crypto.randomUUID(), name }]);
-  };
-
-  return {
+  const node: BranchedTreeNode = {
     id: "labels",
     content: (
       <>
@@ -815,7 +984,7 @@ function useLabelsNode(): BranchedTreeNode {
         <span className="min-w-0 truncate text-sm text-muted-foreground">Labels</span>
       </>
     ),
-    actions: <GroupAddAction label="Adicionar etiqueta" onClick={addLabel} />,
+    actions: <GroupAddAction label="Adicionar etiqueta" onClick={() => setCreating(true)} />,
     children: [
       ...labels.map((label) => ({
         id: label.id,
@@ -843,10 +1012,26 @@ function useLabelsNode(): BranchedTreeNode {
       })),
       {
         id: "labels-add",
-        content: <GhostAddRow label="New label" onClick={addLabel} />,
+        content: <GhostAddRow label="New label" onClick={() => setCreating(true)} />,
       },
     ],
   };
+
+  const modal = (
+    <CreateNamedModal
+      open={creating}
+      title="Nova etiqueta"
+      description="Marca conversas pra filtrar e priorizar depois."
+      placeholder="e.g. Urgente"
+      onClose={() => setCreating(false)}
+      onCreate={({ name }) => {
+        setLabels((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+        setCreating(false);
+      }}
+    />
+  );
+
+  return { node, modal };
 }
 
 type PipelineStage = { id: string; name: string };
@@ -861,15 +1046,11 @@ const INITIAL_PIPELINE_STAGES: PipelineStage[] = [
   { id: "stage-6", name: "Perdido" },
 ];
 
-function usePipelinesNode(): BranchedTreeNode {
+function usePipelinesNode(): { node: BranchedTreeNode; modal: React.ReactNode } {
   const [stages, setStages] = useState(INITIAL_PIPELINE_STAGES);
+  const [creating, setCreating] = useState(false);
 
-  const addStage = () => {
-    const name = window.prompt("Nome da etapa");
-    if (name) setStages((prev) => [...prev, { id: crypto.randomUUID(), name }]);
-  };
-
-  return {
+  const node: BranchedTreeNode = {
     id: "pipelines",
     content: (
       <>
@@ -877,7 +1058,7 @@ function usePipelinesNode(): BranchedTreeNode {
         <span className="min-w-0 truncate text-sm text-muted-foreground">Pipelines</span>
       </>
     ),
-    actions: <GroupAddAction label="Adicionar etapa" onClick={addStage} />,
+    actions: <GroupAddAction label="Adicionar etapa" onClick={() => setCreating(true)} />,
     children: [
       ...stages.map((stage) => ({
         id: stage.id,
@@ -905,10 +1086,26 @@ function usePipelinesNode(): BranchedTreeNode {
       })),
       {
         id: "pipelines-add",
-        content: <GhostAddRow label="New stage" onClick={addStage} />,
+        content: <GhostAddRow label="New stage" onClick={() => setCreating(true)} />,
       },
     ],
   };
+
+  const modal = (
+    <CreateNamedModal
+      open={creating}
+      title="Nova etapa"
+      description="Etapas organizam o funil de negócios do Pipeline."
+      placeholder="e.g. Reunião marcada"
+      onClose={() => setCreating(false)}
+      onCreate={({ name }) => {
+        setStages((prev) => [...prev, { id: crypto.randomUUID(), name }]);
+        setCreating(false);
+      }}
+    />
+  );
+
+  return { node, modal };
 }
 
 function ConversationsSection() {
@@ -916,10 +1113,10 @@ function ConversationsSection() {
   const [title, setTitle] = useState("Conversations");
   const pathname = usePathname();
 
-  const pipelinesNode = usePipelinesNode();
-  const foldersNode = useFoldersNode();
-  const channelsNode = useChannelsNode();
-  const labelsNode = useLabelsNode();
+  const pipelines = usePipelinesNode();
+  const folders = useFoldersNode();
+  const channels = useChannelsNode();
+  const labels = useLabelsNode();
 
   const nodes: BranchedTreeNode[] = [
     ...CONVERSATION_VIEWS.map((view) => ({
@@ -932,10 +1129,10 @@ function ConversationsSection() {
         </InboxNavLink>
       ),
     })),
-    pipelinesNode,
-    foldersNode,
-    channelsNode,
-    labelsNode,
+    pipelines.node,
+    folders.node,
+    channels.node,
+    labels.node,
   ];
 
   return (
@@ -949,6 +1146,10 @@ function ConversationsSection() {
         plain
       />
       {open && <BranchedTree nodes={nodes} />}
+      {pipelines.modal}
+      {folders.modal}
+      {channels.modal}
+      {labels.modal}
     </div>
   );
 }
@@ -1232,6 +1433,24 @@ type AutomationRow = { id: string; name: string };
 const INITIAL_AUTOMATIONS: AutomationRow[] = [
   { id: "auto-1", name: "Envio de relatório semanal" },
 ];
+
+function ChatsSidebarPanel() {
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  return (
+    <div className="group/sidebar-panel flex h-full flex-col">
+      {searchOpen ? (
+        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+      ) : (
+        <SidebarPanelHeader title="Chats" onSearchOpen={() => setSearchOpen(true)} />
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <ChannelsSection />
+        <ChatsSection />
+      </div>
+    </div>
+  );
+}
 
 function AutomacoesSidebarPanel() {
   const [automations, setAutomations] = useState(INITIAL_AUTOMATIONS);
@@ -1570,6 +1789,15 @@ function SpacesBlock() {
   const treeRef = useRef<SidebarTreeHandle>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [spacesOpen, setSpacesOpen] = useState(true);
+  const { open: openBoard } = useSpaceBoard();
+  const favCtx = useContext(TreeFavoritesContext);
+  useHomeNewAction("space", () => setModalOpen(true));
+
+  useEffect(() => {
+    favCtx?.setUnfavorite((id) => treeRef.current?.toggleFavorite(id));
+    favCtx?.setOpenNode((id) => treeRef.current?.openNode(id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateSpace = (data: {
     name: string;
@@ -1597,7 +1825,13 @@ function SpacesBlock() {
       />
       {/* mantém montado (display:none) pra não perder o estado de expand/collapse interno da árvore */}
       <div className={spacesOpen ? undefined : "hidden"}>
-        <SidebarTree ref={treeRef} data={SPACES_TREE} defaultOpen={["mkt"]} />
+        <SidebarTree
+          ref={treeRef}
+          data={SPACES_TREE}
+          defaultOpen={["mkt"]}
+          onOpenBoard={openBoard}
+          onNodesChange={(nodes) => favCtx?.setEntries(flattenFavorites(nodes))}
+        />
       </div>
       <CreateSpaceModal
         open={modalOpen}
@@ -1608,9 +1842,93 @@ function SpacesBlock() {
   );
 }
 
-type HomeSectionId = "spaces" | "channels" | "chats";
+const FAVORITE_NODE_ICON: Record<SidebarTreeNodeKind, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  space: Layers,
+  folder: Folder,
+  table: ListChecks,
+};
+
+const FAVORITE_THREAD_ICON: Record<ChatThreadRef["type"], React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  channel: Hash,
+  dm: MessagesSquare,
+  ai: Bot,
+};
+
+function FavoriteRow({
+  icon: Icon,
+  label,
+  color,
+  onOpen,
+  onUnfavorite,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+  label: string;
+  color?: string;
+  onOpen: () => void;
+  onUnfavorite: () => void;
+}) {
+  return (
+    <div className="group/row flex items-center gap-1 rounded-md pr-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+      <button type="button" onClick={onOpen} className="flex h-full min-w-0 flex-1 items-center gap-2 truncate px-3 py-2 text-left">
+        <Icon size={14} className="shrink-0" style={color ? { color } : undefined} />
+        <span className="truncate">{label}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onUnfavorite}
+        aria-label={`Remover ${label} dos favoritos`}
+        className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-amber-400 hover:bg-border group-hover/row:flex"
+      >
+        <Star size={12} className="fill-current" />
+      </button>
+    </div>
+  );
+}
+
+function FavoritesSection() {
+  const [open, setOpen] = useState(true);
+  const [title, setTitle] = useState("Favorites");
+  const favCtx = useContext(TreeFavoritesContext);
+  const { favorites: chatFavorites, open: openChatThread, toggleFavorite: toggleChatFavorite } = useChatThread();
+
+  const entries = favCtx?.entries ?? [];
+  const total = entries.length + chatFavorites.length;
+  if (total === 0) return null;
+
+  return (
+    <div className="mb-4">
+      <SectionCollapseHeader title={title} open={open} onToggleOpen={() => setOpen((v) => !v)} onRenameSection={setTitle} />
+      {open && (
+        <nav className="flex flex-col gap-0.5">
+          {entries.map((node) => (
+            <FavoriteRow
+              key={node.id}
+              icon={FAVORITE_NODE_ICON[node.kind]}
+              label={node.label}
+              color={node.color}
+              onOpen={() => favCtx?.openNode(node.id)}
+              onUnfavorite={() => favCtx?.unfavorite(node.id)}
+            />
+          ))}
+          {chatFavorites.map((thread) => (
+            <FavoriteRow
+              key={`${thread.type}-${thread.id}`}
+              icon={FAVORITE_THREAD_ICON[thread.type]}
+              label={thread.name}
+              onOpen={() => openChatThread(thread)}
+              onUnfavorite={() => toggleChatFavorite(thread)}
+            />
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
+type HomeSectionId = "favorites" | "spaces" | "channels" | "chats";
 
 const HOME_SECTION_RENDERERS: Record<HomeSectionId, () => React.ReactNode> = {
+  favorites: () => <FavoritesSection />,
   spaces: () => <SpacesBlock />,
   channels: () => <ChannelsSection />,
   chats: () => <ChatsSection />,
@@ -1674,7 +1992,7 @@ function DraggableSection({
 }
 
 function HomePanel({ active }: { active: HomeTab }) {
-  const [order, setOrder] = useState<HomeSectionId[]>(["spaces", "channels", "chats"]);
+  const [order, setOrder] = useState<HomeSectionId[]>(["favorites", "spaces", "channels", "chats"]);
 
   return (
     <>
@@ -1703,13 +2021,9 @@ function HomePanel({ active }: { active: HomeTab }) {
   );
 }
 
-const CLIENT_TABS: { key: ClientTab; label: string; path: string }[] = [
-  { key: "dashboard", label: "Dashboard", path: "dashboard" },
-  { key: "anuncios", label: "Anúncios", path: "anuncios" },
-  { key: "organico", label: "Orgânico", path: "organico" },
-  { key: "financeiro", label: "Financeiro", path: "financeiro" },
-  { key: "tasks", label: "Tarefas", path: "tarefas" },
-  { key: "conteudos", label: "Conteúdos", path: "conteudos" },
+const POSTS_SUB_TABS: { key: ClientTab; label: string; path: string; icon: React.ReactNode }[] = [
+  { key: "posts-overview", label: "Overview", path: "overview", icon: <Eye size={14} /> },
+  { key: "posts-queues", label: "Queues", path: "queues", icon: <Clock size={14} /> },
 ];
 
 function ClientPanel({
@@ -1721,6 +2035,9 @@ function ClientPanel({
   clientName: string;
   active: ClientTab;
 }) {
+  const [postsOpen, setPostsOpen] = useState(true);
+  const postsActive = active.startsWith("posts-");
+
   return (
     <nav className="flex flex-col gap-1">
       <Link
@@ -1730,15 +2047,54 @@ function ClientPanel({
         <span aria-hidden="true">←</span>
         <span className="truncate">{clientName}</span>
       </Link>
-      {CLIENT_TABS.map((tab) => (
-        <Link
-          key={tab.key}
-          href={`/clientes/${clientId}/${tab.path}`}
-          className={navClass(active === tab.key)}
+
+      <Link href={`/clientes/${clientId}/analytics`} className={navClass(active === "analytics")}>
+        <BarChart2 size={14} className="shrink-0" />
+        Analytics
+      </Link>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setPostsOpen((v) => !v)}
+          className={navClass(postsActive) + " w-full justify-between"}
         >
-          {tab.label}
-        </Link>
-      ))}
+          <span className="flex items-center gap-2">
+            <FileText size={14} className="shrink-0" />
+            Posts
+          </span>
+          <ChevronDown size={12} className={`shrink-0 transition-transform ${postsOpen ? "" : "-rotate-90"}`} />
+        </button>
+        {postsOpen && (
+          <div className="ml-4 flex flex-col gap-1 border-l border-border pl-2">
+            {POSTS_SUB_TABS.map((tab) => (
+              <Link
+                key={tab.key}
+                href={`/clientes/${clientId}/posts/${tab.path}`}
+                className={navClass(active === tab.key)}
+              >
+                {tab.icon}
+                {tab.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Link href={`/clientes/${clientId}/ads`} className={navClass(active === "ads")}>
+        <Megaphone size={14} className="shrink-0" />
+        Ads
+      </Link>
+
+      <Link href={`/clientes/${clientId}/tasks`} className={navClass(active === "tasks")}>
+        <CircleDot size={14} className="shrink-0" />
+        Tasks
+      </Link>
+
+      <Link href={`/clientes/${clientId}/workflow`} className={navClass(active === "workflow")}>
+        <HugeiconsIcon icon={WorkflowIcon} size={14} className="shrink-0" />
+        Workflow
+      </Link>
     </nav>
   );
 }
@@ -1770,6 +2126,7 @@ function RailIcon({
   label,
   active,
   preview,
+  previewIsFullPanel,
   tooltip,
   children,
 }: {
@@ -1778,6 +2135,8 @@ function RailIcon({
   label: string;
   active: boolean;
   preview?: React.ReactNode;
+  /** Quando o preview é uma cópia do painel real da sidebar (já vem com header e tudo) — não duplica título nem limita largura ao tamanho do tooltip. */
+  previewIsFullPanel?: boolean;
   tooltip?: string;
   children: React.ReactNode;
 }) {
@@ -1825,15 +2184,28 @@ function RailIcon({
         </button>
       )}
       {preview && !active && (
-        <div className="pointer-events-none absolute left-full top-0 z-20 ml-3 w-56 origin-left scale-95 rounded-xl border border-border bg-background-elevated p-3 opacity-0 shadow-xl transition-all duration-150 group-hover/rail:pointer-events-auto group-hover/rail:scale-100 group-hover/rail:opacity-100">
-          <span
-            aria-hidden="true"
-            className="absolute -left-1.5 top-4 h-3 w-3 rotate-45 border-b border-l border-border bg-background-elevated"
-          />
-          <p className="mb-2 truncate px-1 text-sm font-semibold text-foreground-strong">
-            {label}
-          </p>
-          {preview}
+        // ponytail: a "ponte" (pl-3, sem margin) precisa ficar dentro da própria caixa que reage a
+        // group-hover — um gap vazio (margin) entre o ícone e o card quebra o hover no meio do caminho
+        // e o pointer-events-none junto trava o popup fechando antes do mouse chegar nos links.
+        <div
+          className="pointer-events-none absolute left-full top-0 z-20 origin-left pl-3 opacity-0 transition-all duration-150 group-hover/rail:pointer-events-auto group-hover/rail:opacity-100"
+        >
+          <div
+            className={`relative scale-95 rounded-xl border border-border bg-background-elevated shadow-xl transition-transform duration-150 group-hover/rail:scale-100 ${
+              previewIsFullPanel ? "h-[80vh] w-72 overflow-y-auto p-2" : "w-56 p-3"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute -left-1.5 top-4 h-3 w-3 rotate-45 border-b border-l border-border bg-background-elevated"
+            />
+            {!previewIsFullPanel && (
+              <p className="mb-2 truncate px-1 text-sm font-semibold text-foreground-strong">
+                {label}
+              </p>
+            )}
+            {preview}
+          </div>
         </div>
       )}
       {tooltip && !active && (
@@ -2003,7 +2375,7 @@ function SidebarPanelHeader({
 }: {
   title: string;
   onSearchOpen: () => void;
-  onAdd?: () => void;
+  onAdd?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <div className="flex h-11 shrink-0 items-center justify-between gap-1 px-3">
@@ -2081,20 +2453,70 @@ function SidebarSearchBar({ onClose }: { onClose: () => void }) {
   );
 }
 
+const HOME_NEW_OPTIONS: { target: HomeNewTarget; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  { target: "space", label: "Space", icon: Layers },
+  { target: "channel", label: "Channel", icon: Hash },
+  { target: "dm", label: "Direct message", icon: MessagesSquare },
+  { target: "ai", label: "AI chat", icon: Bot },
+];
+
 function HomeSidebarPanel({ active }: { active: HomeTab }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [pending, setPending] = useState<HomeNewTarget | null>(null);
+  const menu = useFlyout();
+
+  const [favEntries, setFavEntries] = useState<SidebarTreeNode[]>([]);
+  const unfavoriteRef = useRef<(id: string) => void>(() => {});
+  const openNodeRef = useRef<(id: string) => void>(() => {});
+  const favCtxValue = useMemo(
+    () => ({
+      entries: favEntries,
+      setEntries: setFavEntries,
+      unfavorite: (id: string) => unfavoriteRef.current(id),
+      setUnfavorite: (fn: (id: string) => void) => {
+        unfavoriteRef.current = fn;
+      },
+      openNode: (id: string) => openNodeRef.current(id),
+      setOpenNode: (fn: (id: string) => void) => {
+        openNodeRef.current = fn;
+      },
+    }),
+    [favEntries],
+  );
 
   return (
-    <div className="group/sidebar-panel flex h-full flex-col">
-      {searchOpen ? (
-        <SidebarSearchBar onClose={() => setSearchOpen(false)} />
-      ) : (
-        <SidebarPanelHeader title="Home" onSearchOpen={() => setSearchOpen(true)} />
-      )}
-      <div className="flex-1 overflow-y-auto px-2 pb-4">
-        <HomePanel active={active} />
-      </div>
-    </div>
+    <HomeNewActionContext.Provider value={{ pending, request: setPending, clear: () => setPending(null) }}>
+      <TreeFavoritesContext.Provider value={favCtxValue}>
+        <div className="group/sidebar-panel flex h-full flex-col">
+          {searchOpen ? (
+            <SidebarSearchBar onClose={() => setSearchOpen(false)} />
+          ) : (
+            <SidebarPanelHeader title="Home" onSearchOpen={() => setSearchOpen(true)} onAdd={menu.toggleAt} />
+          )}
+          <div className="flex-1 overflow-y-auto px-2 pb-4">
+            <HomePanel active={active} />
+          </div>
+        </div>
+        {menu.position && (
+          <FlyoutPanel position={menu.position} onClose={menu.close} width={200}>
+            {HOME_NEW_OPTIONS.map((opt) => (
+              <button
+                key={opt.target}
+                type="button"
+                onClick={() => {
+                  setPending(opt.target);
+                  menu.close();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-foreground hover:bg-muted"
+              >
+                <opt.icon size={15} />
+                {opt.label}
+              </button>
+            ))}
+          </FlyoutPanel>
+        )}
+      </TreeFavoritesContext.Provider>
+    </HomeNewActionContext.Provider>
   );
 }
 
@@ -2135,7 +2557,7 @@ function ClientRow({
   return (
     <div className="group/row relative flex items-center gap-1 rounded-md pr-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
       <Link
-        href={`/clientes/${client.id}/tarefas`}
+        href={`/clientes/${client.id}/analytics`}
         className="flex h-full min-w-0 flex-1 items-center gap-2 truncate px-3 py-2 text-left"
       >
         <span
@@ -2467,6 +2889,9 @@ export function SidebarPanel({ context }: { context: SidebarContext }) {
   if (context.type === "inbox") {
     return <InboxSidebarPanel />;
   }
+  if (context.type === "chats") {
+    return <ChatsSidebarPanel />;
+  }
   if (context.type === "calendario") {
     return <CalendarioSidebarPanel clients={context.clients} />;
   }
@@ -2489,6 +2914,7 @@ export function Sidebar({
     context.type === "clients" || context.type === "client";
   const connectionsMenu = useFlyout();
   const [connectingApp, setConnectingApp] = useState<ConnectionApp | null>(null);
+  const previewData = useSidebarPreviewData();
 
   return (
     <aside className="flex w-14 shrink-0 flex-col items-center gap-2 self-stretch rounded-xl border border-border bg-background-elevated py-5">
@@ -2496,15 +2922,8 @@ export function Sidebar({
         href="/home/dashboard"
         label="Home"
         active={context.type === "home"}
-        preview={
-          <PreviewList
-            items={[
-              { label: "Dashboard", href: "/home/dashboard" },
-              { label: "Financeiro", href: "/home/financeiro" },
-              { label: "Tasks", href: "/home/tasks" },
-            ]}
-          />
-        }
+        preview={<HomeSidebarPanel active="dashboard" />}
+        previewIsFullPanel
       >
         <HugeiconsIcon icon={Home02Icon} size={18} />
       </RailIcon>
@@ -2513,10 +2932,17 @@ export function Sidebar({
         label="Clientes"
         active={isClientsSection}
         preview={
-          <PreviewList
-            items={[{ label: "Todos os clientes", href: "/clientes" }]}
-          />
+          previewData ? (
+            <ClientsSidebarPanel
+              agencyId={previewData.agencyId}
+              members={previewData.members}
+              initialClients={previewData.clients}
+            />
+          ) : (
+            <PreviewList items={[{ label: "Todos os clientes", href: "/clientes" }]} />
+          )
         }
+        previewIsFullPanel
       >
         <HugeiconsIcon icon={UserGroup03Icon} size={18} />
       </RailIcon>
@@ -2524,11 +2950,8 @@ export function Sidebar({
         href="/inbox"
         label="Inbox"
         active={context.type === "inbox"}
-        preview={
-          <p className="px-1 text-sm text-muted-foreground">
-            Mensagens de WhatsApp, e-mail e direct em breve.
-          </p>
-        }
+        preview={<InboxSidebarPanel />}
+        previewIsFullPanel
       >
         <MessagesSquare size={18} />
       </RailIcon>
@@ -2536,9 +2959,8 @@ export function Sidebar({
         href="/calendario"
         label="Calendário"
         active={context.type === "calendario"}
-        preview={
-          <p className="px-1 text-sm text-muted-foreground">Em breve.</p>
-        }
+        preview={<CalendarioSidebarPanel clients={previewData?.clients ?? []} />}
+        previewIsFullPanel
       >
         <HugeiconsIcon icon={CalendarDate1Icon} size={18} />
       </RailIcon>
@@ -2546,9 +2968,8 @@ export function Sidebar({
         href="/automacoes"
         label="Automações"
         active={context.type === "automacoes"}
-        preview={
-          <p className="px-1 text-sm text-muted-foreground">Em breve.</p>
-        }
+        preview={<AutomacoesSidebarPanel />}
+        previewIsFullPanel
       >
         <HugeiconsIcon icon={WorkflowIcon} size={18} />
       </RailIcon>
@@ -2556,9 +2977,8 @@ export function Sidebar({
         href="/atas"
         label="Atas e documentos"
         active={context.type === "atas"}
-        preview={
-          <p className="px-1 text-sm text-muted-foreground">Em breve.</p>
-        }
+        preview={<AtasDocumentosSidebarPanel clients={previewData?.clients ?? []} />}
+        previewIsFullPanel
       >
         <FileText size={18} />
       </RailIcon>

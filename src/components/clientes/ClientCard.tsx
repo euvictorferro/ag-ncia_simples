@@ -23,7 +23,7 @@ export function ClientCard({ client, onEdit }: { client: Client; onEdit: () => v
           <p className="mt-1 text-xs text-muted-foreground">Arquivado</p>
         </div>
       ) : (
-        <Link href={`/clientes/${client.id}/tarefas`} className="block">
+        <Link href={`/clientes/${client.id}/analytics`} className="block">
           <p className="truncate pr-6 text-sm font-medium text-foreground-strong">{client.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">Ativo</p>
         </Link>

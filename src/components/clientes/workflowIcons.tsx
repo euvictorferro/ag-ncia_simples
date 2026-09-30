@@ -1,0 +1,35 @@
+import {
+  Zap,
+  MessageSquare,
+  Clock,
+  Timer,
+  GitBranch,
+  Variable,
+  Webhook,
+  PhoneCall,
+  Shuffle,
+  Tag,
+  ListOrdered,
+  UserCheck,
+  Square,
+  type LucideIcon,
+} from "lucide-react";
+import type { NodeKind } from "@/lib/mockWorkflows";
+
+export const NODE_ICON: Record<NodeKind, LucideIcon> = {
+  trigger: Zap,
+  "send-message": MessageSquare,
+  "wait-for-reply": Clock,
+  delay: Timer,
+  condition: GitBranch,
+  "set-variable": Variable,
+  webhook: Webhook,
+  "ai-whatsapp-call": PhoneCall,
+  "ab-split": Shuffle,
+  "set-contact-field": Tag,
+  "enroll-sequence": ListOrdered,
+  "add-tag": Tag,
+  "remove-tag": Tag,
+  handoff: UserCheck,
+  end: Square,
+};

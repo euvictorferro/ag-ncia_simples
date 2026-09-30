@@ -2,10 +2,10 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAgencyMembership } from "@/lib/agency";
 import { listClients } from "@/lib/clients";
 import { AppFrame } from "@/components/layout/AppFrame";
-import { PlaceholderSection } from "@/components/shared/PlaceholderSection";
+import { PostsExplorer } from "@/components/clientes/PostsExplorer";
 import Link from "next/link";
 
-export default async function ClientFinanceiroPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientPostsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
@@ -28,8 +28,8 @@ export default async function ClientFinanceiroPage({ params }: { params: Promise
   }
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "financeiro" }} agencyName={agencyName}>
-      <PlaceholderSection title={`${client.name} — Financeiro`} />
+    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "posts-overview" }} agencyName={agencyName}>
+      <PostsExplorer clientId={client.id} defaultView="grid" />
     </AppFrame>
   );
 }

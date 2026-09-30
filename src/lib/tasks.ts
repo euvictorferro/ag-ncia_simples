@@ -20,6 +20,8 @@ export type Task = {
 export type AgencyMember = {
   id: string;
   user_id: string;
+  /** Só populado em dados de demonstração — a tabela real ainda não tem nome de exibição. */
+  name?: string;
 };
 
 export async function listTasks(supabase: SupabaseClient, agencyId: string): Promise<Task[]> {

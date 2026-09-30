@@ -2,10 +2,10 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAgencyMembership } from "@/lib/agency";
 import { listClients } from "@/lib/clients";
 import { AppFrame } from "@/components/layout/AppFrame";
-import { PlaceholderSection } from "@/components/shared/PlaceholderSection";
+import { WorkflowsPage } from "@/components/clientes/WorkflowsPage";
 import Link from "next/link";
 
-export default async function ClientOrganicoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
   const { agencyId, agencyName } = await requireAgencyMembership(supabase);
@@ -28,8 +28,8 @@ export default async function ClientOrganicoPage({ params }: { params: Promise<{
   }
 
   return (
-    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "organico" }} agencyName={agencyName}>
-      <PlaceholderSection title={`${client.name} — Orgânico`} />
+    <AppFrame context={{ type: "client", clientId: client.id, clientName: client.name, active: "workflow" }} agencyName={agencyName}>
+      <WorkflowsPage clientId={client.id} />
     </AppFrame>
   );
 }

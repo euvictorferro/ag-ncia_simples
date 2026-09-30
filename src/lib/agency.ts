@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type AgencyMembership = {
   agencyId: string;
   agencyName: string;
+  memberId: string;
 };
 
 export async function requireAgencyMembership(supabase: SupabaseClient): Promise<AgencyMembership> {
@@ -17,7 +18,7 @@ export async function requireAgencyMembership(supabase: SupabaseClient): Promise
 
   const { data: membership } = await supabase
     .from("agency_members")
-    .select("agency_id, agencies(name)")
+    .select("id, agency_id, agencies(name)")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -28,5 +29,6 @@ export async function requireAgencyMembership(supabase: SupabaseClient): Promise
   return {
     agencyId: membership.agency_id,
     agencyName: (membership.agencies as unknown as { name: string })?.name ?? "Agência",
+    memberId: membership.id,
   };
 }

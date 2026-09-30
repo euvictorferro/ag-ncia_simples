@@ -23,7 +23,7 @@ export function CreateSpaceModal({
 
   const handleSubmit = () => {
     if (!name.trim()) return;
-    onCreate({ name: name.trim(), icon: icon ?? { type: "emoji", value: "📁" }, description: description.trim(), isPrivate });
+    onCreate({ name: name.trim(), icon: icon ?? { type: "icon", value: "folder" }, description: description.trim(), isPrivate });
     setIcon(null);
     setName("");
     setDescription("");

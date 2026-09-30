@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAgencyMembership } from "@/lib/agency";
 import { AppFrame } from "@/components/layout/AppFrame";
-import { PlaceholderSection } from "@/components/shared/PlaceholderSection";
+import { AllChannelsPage } from "@/components/chats/AllChannelsPage";
 
 export default async function ChatsPage() {
   const supabase = await createServerSupabaseClient();
@@ -9,7 +9,7 @@ export default async function ChatsPage() {
 
   return (
     <AppFrame context={{ type: "chats" }} agencyName={agencyName}>
-      <PlaceholderSection title="Chats" />
+      <AllChannelsPage />
     </AppFrame>
   );
 }
