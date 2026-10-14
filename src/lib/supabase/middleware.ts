@@ -29,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const PUBLIC_PATHS = ["/login", "/auth"];
+  const PUBLIC_PATHS = ["/login", "/cadastro", "/auth"];
   const isPublicPath = PUBLIC_PATHS.some(
     (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`),
   );
