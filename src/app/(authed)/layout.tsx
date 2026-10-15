@@ -14,21 +14,14 @@ export default async function AuthedLayout({ children }: { children: React.React
     redirect("/login");
   }
 
-  const { data: membership } = await supabase
+  const { data: membership, error } = await supabase
     .from("agency_members")
     .select("agency_id, agencies(name)")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!membership) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Seu usuário ainda não está vinculado a nenhuma agência. Peça pra alguém do time te adicionar em `agency_members`.
-        </p>
-      </main>
-    );
-  }
+  if (error) throw error;
+  if (!membership) redirect("/onboarding");
 
   const agencyId: string = membership.agency_id;
   const [clients, members] = await Promise.all([
